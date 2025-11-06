@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Plus, Search, Bell, Home, Calendar, CheckSquare, BarChart3, Sparkles, FileText, BookOpen, Briefcase, ClipboardList } from 'lucide-react';
 
-export default function Index() {
+export default function SmartStudyPlanner() {
   const [tasks, setTasks] = useState([
     { id: 1, title: 'Complete Math Assignment Chapter 5', type: 'assignment', priority: 'high', dueDate: 'Oct 28, 2025', completed: false },
     { id: 2, title: 'Physics Midterm Exam Review', type: 'exam', priority: 'high', dueDate: 'Oct 30, 2025', completed: false },
@@ -10,10 +10,39 @@ export default function Index() {
     { id: 5, title: 'Web Development Project - Final Submission', type: 'project', priority: 'medium', dueDate: 'Nov 5, 2025', completed: false },
   ]);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    type: 'assignment',
+    priority: 'medium',
+    dueDate: '',
+    description: ''
+  });
+
   const toggleTask = (id) => {
     setTasks(tasks.map(task => 
       task.id === id ? { ...task, completed: !task.completed } : task
     ));
+  };
+
+  const handleCreateTask = (e) => {
+    e.preventDefault();
+    if (newTask.title.trim() && newTask.dueDate) {
+      const task = {
+        id: tasks.length + 1,
+        ...newTask,
+        completed: false
+      };
+      setTasks([...tasks, task]);
+      setNewTask({
+        title: '',
+        type: 'assignment',
+        priority: 'medium',
+        dueDate: '',
+        description: ''
+      });
+      setIsModalOpen(false);
+    }
   };
 
   const stats = {
@@ -100,7 +129,10 @@ export default function Index() {
           {/* Upcoming Tasks */}
           <div className="flex items-center justify-between mt-10 mb-4">
             <h2 className="text-lg font-semibold">Upcoming Tasks</h2>
-            <button className="bg-white border border-stone-200 px-3 py-1.5 rounded text-sm flex items-center gap-1.5 hover:bg-stone-100 transition-colors">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-white border border-stone-200 px-3 py-1.5 rounded text-sm flex items-center gap-1.5 hover:bg-stone-100 transition-colors"
+            >
               <Plus size={16} />
               <span>New Task</span>
             </button>
@@ -155,6 +187,163 @@ export default function Index() {
           </div>
         </div>
       </main>
+
+      {/* New Task Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-stone-200">
+              <h2 className="text-xl font-semibold">Create New Task</h2>
+            </div>
+            
+            <form onSubmit={handleCreateTask} className="p-6 space-y-5">
+              {/* Task Title */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Task Title *
+                </label>
+                <input
+                  type="text"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                  placeholder="Enter task title..."
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Task Type */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Task Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewTask({...newTask, type: 'assignment'})}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      newTask.type === 'assignment'
+                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
+                        : 'bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    📖 Assignment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTask({...newTask, type: 'exam'})}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      newTask.type === 'exam'
+                        ? 'bg-pink-100 text-pink-700 border-2 border-pink-500'
+                        : 'bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    📋 Exam
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTask({...newTask, type: 'project'})}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      newTask.type === 'project'
+                        ? 'bg-purple-100 text-purple-700 border-2 border-purple-500'
+                        : 'bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    💼 Project
+                  </button>
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Priority Level
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewTask({...newTask, priority: 'high'})}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      newTask.priority === 'high'
+                        ? 'bg-red-100 text-red-700 border-2 border-red-500'
+                        : 'bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    🔴 High
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTask({...newTask, priority: 'medium'})}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      newTask.priority === 'medium'
+                        ? 'bg-orange-100 text-orange-700 border-2 border-orange-500'
+                        : 'bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    🟡 Medium
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewTask({...newTask, priority: 'low'})}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      newTask.priority === 'low'
+                        ? 'bg-green-100 text-green-700 border-2 border-green-500'
+                        : 'bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    🟢 Low
+                  </button>
+                </div>
+              </div>
+
+              {/* Due Date */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Due Date *
+                </label>
+                <input
+                  type="date"
+                  value={newTask.dueDate}
+                  onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                  placeholder="Add any additional details..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Create Task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
