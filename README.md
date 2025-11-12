@@ -53,6 +53,16 @@ study-planner-prj/
 
 4. Open your browser to `http://localhost:5173`
 
+### Configure Gemini AI
+
+To enable the AI assistant and floating chatbot, add your Gemini API key to `front-end/.env`:
+
+```env
+VITE_GEMINI_API_KEY=your_api_key_here
+```
+
+Restart the dev server after updating environment variables.
+
 ## Available Scripts
 
 - `npm run dev` - Start development server

@@ -31,11 +31,11 @@ export default function ProgressPage({ tasks }) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-24 py-15">
-      <h1 className="text-2xl font-bold mb-6">Progress Overview</h1>
+    <div className="page-shell">
+      <h1 className="text-2xl font-semibold text-[var(--text-color)]">Progress Overview</h1>
 
       {/* Overall Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Completion Rate"
           value={`${completionRate}%`}
@@ -64,13 +64,13 @@ export default function ProgressPage({ tasks }) {
       </div>
 
       {/* Progress by Type */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Progress by Task Type</h2>
-        <div className="grid grid-cols-3 gap-4">
+      <div>
+        <h2 className="text-lg font-semibold text-[var(--text-color)] mb-4">Progress by Task Type</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(tasksByType).map(([type, typeTasks]) => (
-            <div key={type} className="bg-white border border-stone-200 rounded-md p-6">
+            <div key={type} className="glass-panel p-6 rounded-2xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium capitalize">{type}s</h3>
+                <h3 className="font-medium capitalize text-[var(--text-color)]">{type}s</h3>
                 <span className="text-2xl">
                   {type === 'assignment' ? '📖' : type === 'exam' ? '📋' : '💼'}
                 </span>
@@ -92,7 +92,7 @@ export default function ProgressPage({ tasks }) {
                     {getCompletionRateByCategory(typeTasks)}%
                   </span>
                 </div>
-                <div className="w-full bg-stone-200 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full ${
                       type === 'assignment' ? 'bg-blue-500' :
@@ -108,13 +108,13 @@ export default function ProgressPage({ tasks }) {
       </div>
 
       {/* Progress by Priority */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold mb-4">Progress by Priority</h2>
-        <div className="grid grid-cols-3 gap-4">
+      <div>
+        <h2 className="text-lg font-semibold text-[var(--text-color)] mb-4">Progress by Priority</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {Object.entries(tasksByPriority).map(([priority, priorityTasks]) => (
-            <div key={priority} className="bg-white border border-stone-200 rounded-md p-6">
+            <div key={priority} className="glass-panel p-6 rounded-2xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium capitalize">{priority} Priority</h3>
+                <h3 className="font-medium capitalize text-[var(--text-color)]">{priority} Priority</h3>
                 <span className="text-xl">
                   {priority === 'high' ? '🔴' : priority === 'medium' ? '🟡' : '🟢'}
                 </span>
@@ -136,7 +136,7 @@ export default function ProgressPage({ tasks }) {
                     {getCompletionRateByCategory(priorityTasks)}%
                   </span>
                 </div>
-                <div className="w-full bg-stone-200 rounded-full h-2">
+                <div className="w-full bg-white/10 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full ${
                       priority === 'high' ? 'bg-red-500' :
@@ -151,10 +151,9 @@ export default function ProgressPage({ tasks }) {
         </div>
       </div>
 
-      {/* Recent Achievements */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">Recent Achievements</h2>
-        <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
+        <h2 className="text-lg font-semibold text-[var(--text-color)] mb-4">Recent Achievements</h2>
+        <div className="glass-panel overflow-hidden">
           {tasks
             .filter(task => task.completed)
             .slice(-5)
@@ -163,30 +162,30 @@ export default function ProgressPage({ tasks }) {
               <div
                 key={task.id}
                 className={`p-4 flex items-center gap-3 ${
-                  index !== array.length - 1 ? 'border-b border-stone-200' : ''
+                  index !== array.length - 1 ? 'border-b border-white/10' : ''
                 }`}
               >
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle size={16} className="text-green-600" />
+                <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                  <CheckCircle size={16} className="text-green-500" />
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-sm">{task.title}</div>
-                  <div className="text-xs text-stone-500">
+                  <div className="font-medium text-sm text-[var(--text-color)]">{task.title}</div>
+                  <div className="text-xs text-[var(--muted-text)]">
                     Completed • {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
                   </div>
                 </div>
                 <div className={`px-2 py-1 rounded text-xs font-medium ${
-                  task.priority === 'high' ? 'bg-red-100 text-red-700' :
-                  task.priority === 'medium' ? 'bg-orange-100 text-orange-700' :
-                  'bg-green-100 text-green-700'
+                  task.priority === 'high' ? 'bg-red-500/20 text-red-600' :
+                  task.priority === 'medium' ? 'bg-orange-500/20 text-orange-600' :
+                  'bg-green-500/20 text-green-600'
                 }`}>
                   {task.priority}
                 </div>
               </div>
             ))}
           {tasks.filter(task => task.completed).length === 0 && (
-            <div className="p-8 text-center text-stone-500">
-              <CheckCircle size={48} className="mx-auto mb-2 text-stone-300" />
+            <div className="p-8 text-center text-[var(--muted-text)]">
+              <CheckCircle size={48} className="mx-auto mb-2 text-white/30" />
               <div className="font-medium">No completed tasks yet</div>
               <div className="text-sm">Complete your first task to see achievements here</div>
             </div>

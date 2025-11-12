@@ -32,19 +32,19 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-stone-50 transition-colors ${
-        !isLast ? "border-b border-stone-200" : ""
+      className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-black/5 transition-colors ${
+        !isLast ? "border-b border-white/10" : ""
       }`}
     >
       <div
         onClick={onToggle}
-        className={`w-4.5 h-4.5 border-1.5 rounded flex-shrink-0 cursor-pointer transition-all ${
+        className={`w-4.5 h-4.5 border rounded flex-shrink-0 cursor-pointer transition-all ${
           task.completed
-            ? "bg-blue-600 border-blue-600 flex items-center justify-center"
-            : "border-stone-300 hover:bg-stone-100"
+            ? "bg-gradient-to-br from-indigo-500 to-purple-500 border-transparent flex items-center justify-center text-white"
+            : "border-white/20 hover:bg-black/5"
         }`}
       >
-        {task.completed && <Check size={12} className="text-white" />}
+        {task.completed && <Check size={12} />}
       </div>
       <div className="flex-1">
         <div
@@ -54,7 +54,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
         >
           {task.title}
         </div>
-        <div className="flex items-center gap-3 text-xs text-stone-500">
+        <div className="flex items-center gap-3 text-xs text-[var(--muted-text)]">
           <span
             className={`px-2 py-0.5 rounded text-[11px] font-medium ${getTypeStyles(task.type)}`}
           >
@@ -75,19 +75,19 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
         <div className="relative">
           <button
             onClick={() => setShowActions(!showActions)}
-            className="w-8 h-8 rounded hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors"
+            className="w-8 h-8 rounded-full hover:bg-black/5 flex items-center justify-center text-[var(--muted-text)] transition-colors"
           >
             <MoreVertical size={14} />
           </button>
           
           {showActions && (
-            <div className="absolute right-0 top-8 bg-white border border-stone-200 rounded-md shadow-lg z-10 min-w-[120px]">
+            <div className="absolute right-0 top-8 glass-panel rounded-2xl z-10 min-w-[140px] p-2">
               <button
                 onClick={() => {
                   onDelete()
                   setShowActions(false)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 rounded-xl hover:bg-black/5 transition-colors"
               >
                 <Trash2 size={14} />
                 Delete

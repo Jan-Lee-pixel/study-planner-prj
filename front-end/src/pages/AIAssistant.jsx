@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sparkles, FileText, BookOpen, Send, Copy, Download } from 'lucide-react';
+import { Sparkles, FileText, BookOpen, Send, Copy, Download, AlertCircle } from 'lucide-react';
+import { generateAIContent } from '../services/aiService';
 
 export default function AIAssistant() {
   const [activeTab, setActiveTab] = useState('quiz');
@@ -13,110 +14,24 @@ export default function AIAssistant() {
     { id: 'lesson', label: 'Create Lesson', icon: <BookOpen size={16} /> },
   ];
 
+  const [error, setError] = useState('');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
     setIsLoading(true);
-    
-    // Simulate AI processing
-    setTimeout(() => {
-      let result = '';
-      
-      if (activeTab === 'quiz') {
-        result = `# Quiz: ${input}
+    setError('');
 
-## Question 1
-What is the main concept discussed in "${input}"?
-A) Option A
-B) Option B
-C) Option C
-D) Option D
-
-**Answer: C) Option C**
-
-## Question 2
-Which of the following best describes...?
-A) Option A
-B) Option B
-C) Option C
-D) Option D
-
-**Answer: B) Option B**
-
-## Question 3
-True or False: The key principle of "${input}" is...
-
-**Answer: True**
-
----
-*Generated quiz based on your input. Review and modify as needed.*`;
-      } else if (activeTab === 'summarize') {
-        result = `# Summary: ${input}
-
-## Key Points
-- Main concept 1: Brief explanation of the first key point
-- Main concept 2: Brief explanation of the second key point
-- Main concept 3: Brief explanation of the third key point
-
-## Important Details
-- Detail 1: Specific information that supports the main concepts
-- Detail 2: Additional context and examples
-- Detail 3: Practical applications or implications
-
-## Conclusion
-The material covers essential concepts that are fundamental to understanding the subject matter. The key takeaways provide a solid foundation for further study.
-
----
-*AI-generated summary. Please review for accuracy.*`;
-      } else if (activeTab === 'lesson') {
-        result = `# Lesson Plan: ${input}
-
-## Learning Objectives
-By the end of this lesson, students will be able to:
-1. Understand the fundamental concepts of ${input}
-2. Apply key principles in practical scenarios
-3. Analyze and evaluate related problems
-
-## Lesson Structure
-
-### Introduction (10 minutes)
-- Overview of the topic
-- Connection to previous learning
-- Preview of key concepts
-
-### Main Content (30 minutes)
-#### Section 1: Core Concepts
-- Definition and explanation
-- Examples and illustrations
-- Interactive discussion
-
-#### Section 2: Practical Applications
-- Real-world examples
-- Hands-on activities
-- Problem-solving exercises
-
-### Conclusion (10 minutes)
-- Summary of key points
-- Q&A session
-- Preview of next lesson
-
-## Assessment
-- Formative: Quick check questions throughout
-- Summative: End-of-lesson quiz or assignment
-
-## Resources
-- Textbook chapters
-- Online materials
-- Practice exercises
-
----
-*Structured lesson plan ready for implementation.*`;
-      }
-      
+    try {
+      const result = await generateAIContent({ mode: activeTab, prompt: input });
       setOutput(result);
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setOutput('');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   const copyToClipboard = () => {
@@ -134,19 +49,18 @@ By the end of this lesson, students will be able to:
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-24 py-15">
-      <h1 className="text-2xl font-bold mb-6">AI Study Assistant</h1>
+    <div className="page-shell">
+      <h1 className="text-2xl font-semibold text-[var(--text-color)]">AI Study Assistant</h1>
 
-      {/* Tabs */}
-      <div className="flex border-b border-stone-200 mb-6">
+      <div className="flex flex-wrap gap-2 border-b border-white/10 mb-6">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
               activeTab === tab.id
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-stone-600 hover:text-stone-900'
+                ? 'bg-black/10 text-indigo-600'
+                : 'text-[var(--muted-text)] hover:text-[var(--text-color)]'
             }`}
           >
             {tab.icon}
@@ -155,12 +69,17 @@ By the end of this lesson, students will be able to:
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Input Section */}
-        <div className="bg-white border border-stone-200 rounded-md">
-          <div className="p-4 border-b border-stone-200">
-            <h2 className="font-semibold">Input</h2>
-            <p className="text-sm text-stone-500 mt-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="glass-panel rounded-2xl overflow-hidden">
+          {error && (
+            <div className="bg-red-500/10 text-red-500 text-sm flex items-center gap-2 px-4 py-3">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
+          <div className="p-4 border-b border-white/10">
+            <h2 className="font-semibold text-[var(--text-color)]">Input</h2>
+            <p className="text-sm text-[var(--muted-text)] mt-1">
               {activeTab === 'quiz' && 'Enter the topic or content you want to create a quiz for'}
               {activeTab === 'summarize' && 'Paste your notes or text that you want summarized'}
               {activeTab === 'lesson' && 'Enter the topic you want to create a lesson plan for'}
@@ -175,13 +94,13 @@ By the end of this lesson, students will be able to:
                 activeTab === 'summarize' ? 'Paste your notes here...' :
                 'e.g., Introduction to Calculus'
               }
-              className="w-full h-64 p-3 border border-stone-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full h-64 p-3 rounded-2xl bg-black/5 border border-white/10 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"
               required
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="mt-4 w-full bg-blue-600 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="mt-4 w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {isLoading ? (
                 <>
@@ -200,22 +119,21 @@ By the end of this lesson, students will be able to:
           </form>
         </div>
 
-        {/* Output Section */}
-        <div className="bg-white border border-stone-200 rounded-md">
-          <div className="p-4 border-b border-stone-200 flex items-center justify-between">
-            <h2 className="font-semibold">Output</h2>
+        <div className="glass-panel rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <h2 className="font-semibold text-[var(--text-color)]">Output</h2>
             {output && (
               <div className="flex gap-2">
                 <button
                   onClick={copyToClipboard}
-                  className="p-2 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors"
+                  className="p-2 text-[var(--muted-text)] hover:text-[var(--text-color)] hover:bg-black/5 rounded-full transition-colors"
                   title="Copy to clipboard"
                 >
                   <Copy size={16} />
                 </button>
                 <button
                   onClick={downloadAsText}
-                  className="p-2 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors"
+                  className="p-2 text-[var(--muted-text)] hover:text-[var(--text-color)] hover:bg-black/5 rounded-full transition-colors"
                   title="Download as text file"
                 >
                   <Download size={16} />
@@ -225,11 +143,11 @@ By the end of this lesson, students will be able to:
           </div>
           <div className="p-4">
             {output ? (
-              <div className="prose prose-sm max-w-none">
+              <div className="prose prose-sm max-w-none text-[var(--text-color)]">
                 <pre className="whitespace-pre-wrap text-sm leading-relaxed">{output}</pre>
               </div>
             ) : (
-              <div className="h-64 flex items-center justify-center text-stone-400">
+              <div className="h-64 flex items-center justify-center text-[var(--muted-text)]">
                 <div className="text-center">
                   <div className="text-4xl mb-2">🤖</div>
                   <div>AI-generated content will appear here</div>
@@ -240,10 +158,9 @@ By the end of this lesson, students will be able to:
         </div>
       </div>
 
-      {/* Tips Section */}
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
-        <h3 className="font-semibold text-blue-900 mb-2">💡 Tips for better results</h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+      <div className="glass-panel p-4 rounded-2xl">
+        <h3 className="font-semibold text-[var(--text-color)] mb-2">💡 Tips for better results</h3>
+        <ul className="text-sm text-[var(--muted-text)] space-y-1">
           {activeTab === 'quiz' && (
             <>
               <li>• Be specific about the topic and difficulty level</li>

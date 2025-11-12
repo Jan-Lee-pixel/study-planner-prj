@@ -1,29 +1,29 @@
 import React from 'react';
 
-export default function AICard({ icon, title, description, color, onClick }) {
-  const getColorStyles = (color) => {
-    const styles = {
-      blue: "bg-blue-50 text-blue-700",
-      purple: "bg-purple-50 text-purple-700",
-      green: "bg-green-50 text-green-700",
-    };
-    return styles[color] || "bg-gray-50 text-gray-700";
-  };
+const colorTokens = {
+  blue: 'from-sky-500 to-indigo-500',
+  purple: 'from-fuchsia-500 to-purple-500',
+  green: 'from-emerald-500 to-lime-500',
+};
 
+export default function AICard({ icon, title, description, color = 'blue', onClick }) {
   return (
-    <div 
+    <button
+      type="button"
       onClick={onClick}
-      className="bg-white border border-stone-200 rounded-md p-6 cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all"
+      className="glass-panel rounded-2xl p-5 text-left hover:-translate-y-0.5 transition-all"
     >
       <div
-        className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${getColorStyles(color)}`}
+        className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${colorTokens[color] || colorTokens.blue} text-white flex items-center justify-center mb-4`}
       >
         {icon}
       </div>
-      <div className="text-base font-semibold mb-1.5">{title}</div>
-      <div className="text-[13px] text-stone-500 leading-snug">
-        {description}
+      <div className="text-base font-semibold text-[var(--text-color)] mb-1">
+        {title}
       </div>
-    </div>
+      <p className="text-sm text-[var(--muted-text)] leading-snug">
+        {description}
+      </p>
+    </button>
   );
 }
