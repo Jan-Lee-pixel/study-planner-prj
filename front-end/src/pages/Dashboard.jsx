@@ -1,11 +1,35 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Sparkles, FileText, BookOpen, CheckSquare, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Sparkles, FileText, BookOpen, CheckSquare, Calendar, BarChart3, Target } from 'lucide-react';
 import StatCard from '../components/StatCard';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
 import AICard from '../components/AICard';
 
-export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI }) {
+const formatTimeAgo = (timestamp) => {
+  if (!timestamp) return 'Just now';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return 'Just now';
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.round(diffMs / (1000 * 60));
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+};
+
+const formatShortDate = (value) => {
+  if (!value) return 'No due date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No due date';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI, onOpenTask, focusTaskId, onFocusChange, onManageFocus }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const stats = {
@@ -65,7 +89,32 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
       .slice(0, 5);
   }, [tasks]);
 
-  const recentTasks = tasks.slice(0, 5);
+  const focusTask = useMemo(() => {
+    return tasks.find((task) => String(task.id) === String(focusTaskId)) || upcomingTasks[0] || tasks[0];
+  }, [tasks, focusTaskId, upcomingTasks]);
+
+  const recentTasks = useMemo(() => {
+    return upcomingTasks.length > 0 ? upcomingTasks : tasks.slice(0, 5);
+  }, [upcomingTasks, tasks]);
+
+  const activityLog = useMemo(() => {
+    return tasks
+      .map((task) => {
+        const stamp = task.updated_at || task.created_at || task.dueDate || task.due_date;
+        return {
+          id: task.id,
+          icon: task.completed ? '✓' : '📝',
+          title: task.completed ? `Completed ${task.title}` : task.title,
+          description: task.completed
+            ? 'Marked as done'
+            : `Due ${formatShortDate(task.dueDate || task.due_date)}`,
+          time: formatTimeAgo(stamp),
+          raw: stamp ? new Date(stamp) : new Date(),
+        };
+      })
+      .sort((a, b) => b.raw - a.raw)
+      .slice(0, 5);
+  }, [tasks]);
 
   const heroSubtitle = stats.total
     ? "Here's what's on deck for you today."
@@ -92,32 +141,49 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
             </button>
           </div>
         </div>
-        <div className="glass-panel rounded-2xl p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
-            Next focus
-          </p>
-          {upcomingTasks[0] ? (
-            <>
-              <h3 className="mt-3 text-lg font-semibold text-[var(--text-color)]">
-                {upcomingTasks[0].title}
-              </h3>
-              <p className="text-sm text-[var(--muted-text)]">
-                Due {new Date(upcomingTasks[0].dueDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })}
+        <div className="glass-panel rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
+                Focus task
               </p>
-              {upcomingTasks.length > 1 && (
-                <div className="mt-6 text-xs text-[var(--muted-text)]">
-                  +{upcomingTasks.length - 1} more tasks in queue
-                </div>
+              {focusTask ? (
+                <>
+                  <h3 className="mt-3 text-lg font-semibold text-[var(--text-color)]">
+                    {focusTask.title}
+                  </h3>
+                  <p className="text-sm text-[var(--muted-text)]">
+                    Due {formatShortDate(focusTask.dueDate)}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-sm text-[var(--muted-text)]">
+                  No tasks available yet.
+                </p>
               )}
-            </>
-          ) : (
-            <p className="mt-3 text-sm text-[var(--muted-text)]">
-              No upcoming work. Create a task to get started!
+            </div>
+            {focusTask && (
+              <button
+                onClick={() => onOpenTask?.(focusTask.id)}
+                className="px-3 py-1.5 rounded-full border border-white/10 text-xs uppercase tracking-[0.2em]"
+              >
+                Open
+              </button>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-[var(--muted-text)]">
+              Choose which task to focus on from the task list view.
             </p>
-          )}
+            {onManageFocus && (
+              <button
+                onClick={onManageFocus}
+                className="px-3 py-1.5 text-xs rounded-full bg-black/5 border border-white/10 text-[var(--text-color)] hover:bg-black/10 transition-colors"
+              >
+                Manage focus
+              </button>
+            )}
+          </div>
         </div>
       </section>
 
@@ -140,14 +206,21 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
           </button>
         </div>
         <div className="glass-panel overflow-hidden">
-          {recentTasks.map((task, index) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={() => onToggleTask(task.id)}
-              isLast={index === recentTasks.length - 1}
-            />
-          ))}
+          {recentTasks.length === 0 ? (
+            <div className="p-6 text-center text-[var(--muted-text)] text-sm">
+              No upcoming tasks. Create one to get started.
+            </div>
+          ) : (
+            recentTasks.map((task, index) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={() => onToggleTask(task.id)}
+                onOpen={onOpenTask}
+                isLast={index === recentTasks.length - 1}
+              />
+            ))
+          )}
         </div>
       </section>
 
@@ -185,22 +258,22 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
           Recent Activity
         </h2>
         <div className="glass-panel overflow-hidden">
-          <ActivityItem
-            icon="✓"
-            title="Completed Chemistry Lab Report"
-            time="2 hours ago"
-          />
-          <ActivityItem
-            icon="✨"
-            title="Generated quiz for Biology Chapter 3"
-            time="5 hours ago"
-          />
-          <ActivityItem
-            icon="📝"
-            title="Added new task: Literature Essay Draft"
-            time="Yesterday"
-            isLast
-          />
+          {activityLog.length === 0 ? (
+            <div className="p-6 text-center text-[var(--muted-text)] text-sm">
+              No activity yet. Work on tasks to see updates here.
+            </div>
+          ) : (
+            activityLog.map((event, index) => (
+              <ActivityItem
+                key={event.id}
+                icon={event.icon}
+                title={event.title}
+                time={event.time}
+                description={event.description}
+                isLast={index === activityLog.length - 1}
+              />
+            ))
+          )}
         </div>
       </section>
 
@@ -213,7 +286,7 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
   );
 }
 
-function ActivityItem({ icon, title, time, isLast = false }) {
+function ActivityItem({ icon, title, time, description, isLast = false }) {
   return (
     <div
       className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-black/5 transition-colors ${
@@ -223,7 +296,10 @@ function ActivityItem({ icon, title, time, isLast = false }) {
       <span className="text-base w-5 text-center">{icon}</span>
       <div className="flex-1">
         <div className="text-sm">{title}</div>
-        <div className="text-xs text-[var(--muted-text)]">{time}</div>
+        <div className="text-xs text-[var(--muted-text)]">{description || time}</div>
+      </div>
+      <div className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted-text)]">
+        {time}
       </div>
     </div>
   );

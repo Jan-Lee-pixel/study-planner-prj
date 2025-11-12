@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Check, Trash2, MoreVertical } from 'lucide-react';
+import { Check, Trash2, MoreVertical, Target } from 'lucide-react';
 
-export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
+export default function TaskItem({ task, onToggle, onOpen, onDelete, onFocus, isFocused = false, isLast }) {
   const [showActions, setShowActions] = useState(false);
   const getTypeStyles = (type) => {
     const styles = {
@@ -32,7 +32,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-black/5 transition-colors ${
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-black/5 transition-colors ${
         !isLast ? "border-b border-white/10" : ""
       }`}
     >
@@ -46,7 +46,19 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
       >
         {task.completed && <Check size={12} />}
       </div>
-      <div className="flex-1">
+      <div
+        className={`flex-1 ${onOpen ? 'cursor-pointer' : ''}`}
+        onClick={() => onOpen?.(task.id)}
+        role={onOpen ? "button" : undefined}
+        tabIndex={onOpen ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (!onOpen) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onOpen(task.id);
+          }
+        }}
+      >
         <div
           className={`text-sm mb-1 ${
             task.completed ? "line-through opacity-60" : ""
@@ -71,6 +83,23 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete, isLast }) {
         </div>
       </div>
       
+      {onFocus && !task.completed && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFocus(task.id);
+          }}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 transition-colors ${
+            isFocused
+              ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30'
+              : 'bg-black/5 text-[var(--muted-text)] border border-white/10 hover:bg-black/10'
+          }`}
+        >
+          <Target size={12} />
+          {isFocused ? 'Focused' : 'Focus'}
+        </button>
+      )}
+
       {onDelete && (
         <div className="relative">
           <button

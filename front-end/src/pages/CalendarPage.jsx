@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 
 export default function CalendarPage({ tasks }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() =>
+    new Date().toISOString().split('T')[0]
+  );
+  const [isModalOpen, setModalOpen] = useState(false);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -31,6 +35,20 @@ export default function CalendarPage({ tasks }) {
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
   const today = new Date();
+  const selectedTasks = useMemo(() => {
+    return tasks.filter((task) => task.dueDate === selectedDate);
+  }, [tasks, selectedDate]);
+
+  const formatSelectedDate = () => {
+    if (!selectedDate) return '';
+    const date = new Date(selectedDate);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
 
   return (
     <div className="page-shell">
@@ -85,12 +103,25 @@ export default function CalendarPage({ tasks }) {
             const dayTasks = getTasksForDate(date);
             const isToday = date.toDateString() === today.toDateString();
 
+            const dateKey = date.toISOString().split('T')[0];
+            const isSelected = dateKey === selectedDate;
+
             return (
               <div
                 key={day}
-                className="h-24 border-r border-b border-white/10 last:border-r-0 p-2 hover:bg-black/5 transition-colors"
+                onClick={() => {
+                  setSelectedDate(dateKey);
+                  setModalOpen(true);
+                }}
+                className={`h-24 border-r border-b border-white/10 last:border-r-0 p-2 hover:bg-black/5 transition-colors cursor-pointer ${
+                  isSelected ? 'bg-black/5 ring-1 ring-indigo-400' : ''
+                }`}
               >
-                <div className={`text-sm font-medium mb-1 ${isToday ? 'text-indigo-500' : 'text-[var(--text-color)]'}`}>
+                <div
+                  className={`text-sm font-medium mb-1 ${
+                    isToday ? 'text-indigo-500' : 'text-[var(--text-color)]'
+                  }`}
+                >
                   {day}
                 </div>
                 <div className="space-y-1">
@@ -118,6 +149,64 @@ export default function CalendarPage({ tasks }) {
           })}
         </div>
       </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="glass-panel w-full max-w-xl rounded-3xl shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
+                  Tasks on
+                </p>
+                <h3 className="text-lg font-semibold text-[var(--text-color)]">
+                  {formatSelectedDate()}
+                </h3>
+              </div>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="w-10 h-10 rounded-full bg-black/5 text-[var(--muted-text)] flex items-center justify-center hover:bg-black/10 transition-colors"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto px-6 py-5 space-y-4">
+              {selectedTasks.length === 0 ? (
+                <div className="text-sm text-[var(--muted-text)]">
+                  No tasks scheduled for this date.
+                </div>
+              ) : (
+                selectedTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="p-4 rounded-2xl bg-black/5 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-color)]">
+                        {task.title}
+                      </p>
+                      <p className="text-xs text-[var(--muted-text)]">
+                        {task.type} • {task.priority} priority
+                      </p>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        task.type === 'assignment'
+                          ? 'bg-blue-100 text-blue-700'
+                          : task.type === 'exam'
+                          ? 'bg-pink-100 text-pink-700'
+                          : 'bg-purple-100 text-purple-700'
+                      }`}
+                    >
+                      {task.type}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-[var(--text-color)]">Upcoming Deadlines</h3>

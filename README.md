@@ -8,6 +8,7 @@ A modern React-based study planner application that helps students organize thei
 - **Priority System**: Categorize tasks by priority (High, Medium, Low)
 - **Progress Tracking**: Monitor completion rates and identify overdue items
 - **AI Study Assistant**: Generate quizzes, summarize notes, and structure lessons
+- **Smart Shortcuts**: Global quick-search palette, deadline notifications, and task detail pages
 - **Dashboard**: Visual overview of study progress and upcoming deadlines
 - **Modern UI**: Clean, responsive design with Tailwind CSS
 

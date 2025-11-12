@@ -90,3 +90,65 @@ select {
   transform: translateY(-2px);
   box-shadow: 0 25px 50px -15px rgba(79, 70, 229, 0.9);
 }
+
+.select-clean {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+:root[data-theme='dark'] .select-clean {
+  background: rgba(13, 18, 36, 0.9);
+  color: #f8fafc;
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(15, 23, 42, 0.45);
+  background: rgba(255, 255, 255, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+:root[data-theme='dark'] .task-checkbox {
+  border-color: rgba(248, 250, 252, 0.6);
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: none;
+}
+
+.task-checkbox::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.35);
+  transition: opacity 0.2s ease;
+}
+
+:root[data-theme='dark'] .task-checkbox::after {
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.task-checkbox--complete {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  position: relative;
+}
+
+.task-checkbox--complete::after {
+  opacity: 0;
+}
+
+.task-checkbox--pending:hover {
+  border-color: rgba(99, 102, 241, 0.9);
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}

@@ -1,17 +1,32 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Calendar, Flag, Layers3, PenLine, Pencil, X } from 'lucide-react';
 
 export default function TaskModal({ isOpen, onClose, onSubmit, task = null }) {
-  const [formData, setFormData] = useState({
+  const baseState = {
     title: task?.title || "",
     type: task?.type || "assignment",
     priority: task?.priority || "medium",
-    dueDate: task?.dueDate || "",
+    dueDate: task?.dueDate || task?.due_date || "",
     description: task?.description || "",
-  });
+  };
+
+  const [formData, setFormData] = useState(baseState);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        title: task?.title || "",
+        type: task?.type || "assignment",
+        priority: task?.priority || "medium",
+        dueDate: task?.dueDate || task?.due_date || "",
+        description: task?.description || "",
+      });
+      setSubmitError('');
+    }
+  }, [task, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,129 +59,146 @@ export default function TaskModal({ isOpen, onClose, onSubmit, task = null }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-stone-200 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">
-            {task ? 'Edit Task' : 'Create New Task'}
-          </h2>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center px-4 py-10">
+      <div className="glass-panel w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
+              {task ? 'Update task' : 'Create task'}
+            </div>
+            <div className="flex items-center gap-2 mt-1 text-[var(--text-color)]">
+              <PenLine size={16} className="text-indigo-500" />
+              <h2 className="text-2xl font-semibold">
+                {task ? 'Edit task details' : 'Add a new task'}
+              </h2>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded hover:bg-stone-100 flex items-center justify-center text-stone-500 transition-colors"
+            className="w-10 h-10 rounded-full bg-black/5 text-[var(--muted-text)] flex items-center justify-center hover:bg-black/10 transition-colors"
+            aria-label="Close"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {submitError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
-              {submitError}
+        <form onSubmit={handleSubmit} className="flex-1 px-6 py-5 grid gap-6 lg:grid-cols-[2fr,1fr] overflow-y-auto">
+          <div className="space-y-5">
+            {submitError && (
+              <div className="bg-red-500/10 border border-red-400/50 text-red-500 px-4 py-2 rounded-lg text-sm">
+                {submitError}
+              </div>
+            )}
+            <div>
+              <label className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] mb-2">
+                <Pencil size={14} />
+                Task title *
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g., Biology Chapter 5 summary"
+                className="w-full px-4 py-3 rounded-2xl bg-black/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                required
+              />
             </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Task Title *
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter task title..."
-              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Task Type
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['assignment', 'exam', 'project'].map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type })}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    formData.type === type
-                      ? `${type === 'assignment' ? 'bg-blue-100 text-blue-700 border-2 border-blue-500' :
-                          type === 'exam' ? 'bg-pink-100 text-pink-700 border-2 border-pink-500' :
-                          'bg-purple-100 text-purple-700 border-2 border-purple-500'}`
-                      : "bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100"
-                  }`}
-                >
-                  {type === 'assignment' ? '📖' : type === 'exam' ? '📋' : '💼'} {type.charAt(0).toUpperCase() + type.slice(1)}
-                </button>
-              ))}
+            <div>
+              <label className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] mb-2">
+                <Layers3 size={14} />
+                Task type
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {['assignment', 'exam', 'project'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type })}
+                    className={`flex-1 min-w-[120px] px-4 py-2 rounded-2xl text-sm font-medium transition-all ${
+                      formData.type === type
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-500/30'
+                        : 'bg-black/5 text-[var(--muted-text)] border border-white/10 hover:bg-black/10'
+                    }`}
+                  >
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] mb-2">
+                <Flag size={14} />
+                Priority
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {['high', 'medium', 'low'].map((priority) => (
+                  <button
+                    key={priority}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, priority })}
+                    className={`flex-1 min-w-[120px] px-4 py-2 rounded-2xl text-sm font-medium transition-all ${
+                      formData.priority === priority
+                        ? priority === 'high'
+                          ? 'bg-red-500/20 text-red-500 border border-red-500/40'
+                          : priority === 'medium'
+                          ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40'
+                          : 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/40'
+                        : 'bg-black/5 text-[var(--muted-text)] border border-white/10 hover:bg-black/10'
+                    }`}
+                  >
+                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Priority Level
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['high', 'medium', 'low'].map((priority) => (
-                <button
-                  key={priority}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, priority })}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    formData.priority === priority
-                      ? `${priority === 'high' ? 'bg-red-100 text-red-700 border-2 border-red-500' :
-                          priority === 'medium' ? 'bg-orange-100 text-orange-700 border-2 border-orange-500' :
-                          'bg-green-100 text-green-700 border-2 border-green-500'}`
-                      : "bg-stone-50 text-stone-700 border border-stone-200 hover:bg-stone-100"
-                  }`}
-                >
-                  {priority === 'high' ? '🔴' : priority === 'medium' ? '🟡' : '🟢'} {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                </button>
-              ))}
+          <div className="space-y-5">
+            <div>
+              <label className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] mb-2">
+                <Calendar size={14} />
+                Due date *
+              </label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                className="w-full px-4 py-3 rounded-2xl bg-black/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                required
+              />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Due Date *
-            </label>
-            <input
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
+            <div>
+              <label className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] mb-2 block">
+                Details (optional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Add context, resources, or instructions..."
+                rows={5}
+                className="w-full px-4 py-3 rounded-2xl bg-black/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">
-              Description (Optional)
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Add any additional details..."
-              rows={3}
-              className="w-full px-3 py-2 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-stone-300 rounded-md text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || !formData.title.trim() || !formData.dueDate}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? 'Saving...' : (task ? 'Update Task' : 'Create Task')}
-            </button>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 rounded-2xl border border-white/10 text-sm font-medium text-[var(--text-color)] hover:bg-black/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || !formData.title.trim() || !formData.dueDate}
+                className="flex-1 px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-semibold shadow-lg shadow-indigo-500/30 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {isSubmitting ? 'Saving...' : (task ? 'Update Task' : 'Create Task')}
+              </button>
+            </div>
           </div>
         </form>
       </div>

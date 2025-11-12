@@ -9,7 +9,10 @@ export default function TasksPage({
   tasks,
   onToggleTask,
   onAddTask,
-  onDeleteTask
+  onDeleteTask,
+  onOpenTask,
+  onFocusChange,
+  focusTaskId,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -25,22 +28,33 @@ export default function TasksPage({
     .filter(task => {
       if (filter === 'completed') return task.completed;
       if (filter === 'pending') return !task.completed;
-      if (filter === 'overdue') return !task.completed && new Date(task.dueDate) < new Date();
+      if (filter === 'overdue') {
+        const dueDate = task.dueDate || task.due_date;
+        return !task.completed && dueDate && new Date(dueDate) < new Date();
+      }
       return true;
     })
-    .filter(task =>
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === 'dueDate') return new Date(a.dueDate) - new Date(b.dueDate);
-      if (sortBy === 'priority') {
-        const priorityOrder = { high: 3, medium: 2, low: 1 };
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
-      }
-      if (sortBy === 'title') return a.title.localeCompare(b.title);
-      return 0;
+    .filter(task => {
+      const haystack = `${task.title || ''} ${task.description || ''}`.toLowerCase();
+      return haystack.includes(searchTerm.toLowerCase());
     });
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    const dueAValue = a.dueDate || a.due_date;
+    const dueBValue = b.dueDate || b.due_date;
+    const dueA = dueAValue ? new Date(dueAValue) : new Date(8640000000000000);
+    const dueB = dueBValue ? new Date(dueBValue) : new Date(8640000000000000);
+    if (sortBy === 'dueDate') return dueA - dueB;
+    if (sortBy === 'priority') {
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+    }
+    if (sortBy === 'title') return a.title.localeCompare(b.title);
+    return 0;
+  });
+
+  const pendingTasks = sortedTasks.filter((task) => !task.completed);
+  const completedTasks = sortedTasks.filter((task) => task.completed);
 
   const handleCreateTask = async (taskData) => {
     const result = await onAddTask(taskData);
@@ -128,7 +142,7 @@ export default function TasksPage({
       </div>
 
       <div className="glass-panel overflow-hidden">
-        {filteredTasks.length === 0 ? (
+        {sortedTasks.length === 0 ? (
           <div className="p-8 text-center text-[var(--muted-text)]">
             <div className="text-4xl mb-2">📝</div>
             <div className="text-lg font-medium mb-1">No tasks found</div>
@@ -141,15 +155,39 @@ export default function TasksPage({
             </div>
           </div>
         ) : (
-          filteredTasks.map((task, index) => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={() => onToggleTask(task.id)}
-              onDelete={() => handleDeleteTask(task.id)}
-              isLast={index === filteredTasks.length - 1}
-            />
-          ))
+          <>
+            {pendingTasks.map((task, index) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={() => onToggleTask(task.id)}
+                onDelete={() => handleDeleteTask(task.id)}
+                onOpen={onOpenTask}
+                onFocus={
+                  onFocusChange ? () => onFocusChange(task.id) : undefined
+                }
+                isFocused={String(task.id) === String(focusTaskId)}
+                isLast={
+                  index === pendingTasks.length - 1 && completedTasks.length === 0
+                }
+              />
+            ))}
+            {completedTasks.length > 0 && (
+              <div className="px-4 py-2 text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] border-t border-white/10 bg-black/5">
+                Completed
+              </div>
+            )}
+            {completedTasks.map((task, index) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                onToggle={() => onToggleTask(task.id)}
+                onDelete={() => handleDeleteTask(task.id)}
+                onOpen={onOpenTask}
+                isLast={index === completedTasks.length - 1}
+              />
+            ))}
+          </>
         )}
       </div>
 
