@@ -96,7 +96,7 @@ export function useAIComposer() {
         setIsLoading(false);
       }
     },
-    [activeMode]
+    []
   );
 
   const clearOutput = useCallback(() => {
