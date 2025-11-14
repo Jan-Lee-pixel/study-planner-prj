@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Target, Clock, CheckCircle } from 'lucide-react';
+import { TrendingUp, Target, Clock, CheckCircle, BookOpen, ClipboardList, Briefcase, Circle } from 'lucide-react';
 import StatCard from '../components/StatCard';
 
 export default function ProgressPage({ tasks }) {
@@ -72,7 +72,7 @@ export default function ProgressPage({ tasks }) {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium capitalize text-[var(--text-color)]">{type}s</h3>
                 <span className="text-2xl">
-                  {type === 'assignment' ? '📖' : type === 'exam' ? '📋' : '💼'}
+                  {type === 'assignment' ? <BookOpen size={18} /> : type === 'exam' ? <ClipboardList size={18} /> : <Briefcase size={18} />}
                 </span>
               </div>
               <div className="space-y-3">
@@ -115,8 +115,17 @@ export default function ProgressPage({ tasks }) {
             <div key={priority} className="glass-panel p-6 rounded-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium capitalize text-[var(--text-color)]">{priority} Priority</h3>
-                <span className="text-xl">
-                  {priority === 'high' ? '🔴' : priority === 'medium' ? '🟡' : '🟢'}
+                <span className="text-xl text-[var(--text-color)]">
+                  <Circle
+                    size={18}
+                    className={
+                      priority === 'high'
+                        ? 'text-red-500'
+                        : priority === 'medium'
+                        ? 'text-amber-500'
+                        : 'text-emerald-500'
+                    }
+                  />
                 </span>
               </div>
               <div className="space-y-3">
@@ -171,7 +180,7 @@ export default function ProgressPage({ tasks }) {
                 <div className="flex-1">
                   <div className="font-medium text-sm text-[var(--text-color)]">{task.title}</div>
                   <div className="text-xs text-[var(--muted-text)]">
-                    Completed • {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
+                    Completed - {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
                   </div>
                 </div>
                 <div className={`px-2 py-1 rounded text-xs font-medium ${

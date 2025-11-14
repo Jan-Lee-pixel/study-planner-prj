@@ -1,13 +1,6 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageCircle, Send, Sparkles, X, AlertCircle } from 'lucide-react';
-import { chatWithAssistant } from '../services/aiService';
-
-const createId = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return Math.random().toString(36).slice(2);
-};
+import { useAIConversation } from '../hooks/useAI';
 
 const SUGGESTIONS = [
   'Create a quiz for biology chapter 3',
@@ -21,19 +14,22 @@ const CHAT_PRIMER = {
     'You are Study Buddy, an upbeat study coach. Answer in short, organized paragraphs or bullet points with clear next steps.',
 };
 
+const INITIAL_MESSAGES = [
+  {
+    id: 'welcome',
+    role: 'assistant',
+    text: "Hi! I'm your Study Buddy. Ask me to plan, summarize, or quiz you anytime.",
+  },
+];
+
 export default function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      text: 'Hi! I’m your Study Buddy. Ask me to plan, summarize, or quiz you anytime.',
-    },
-  ]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [error, setError] = useState('');
   const endRef = useRef(null);
+  const { messages, isTyping, error, sendMessage } = useAIConversation({
+    primer: CHAT_PRIMER,
+    initialMessages: INITIAL_MESSAGES,
+  });
 
   const scrollToEnd = () => {
     if (typeof requestAnimationFrame !== 'undefined') {
@@ -45,45 +41,21 @@ export default function FloatingChatbot() {
     }
   };
 
-  const handleSend = (event) => {
-    event.preventDefault();
-    sendMessage(input);
-  };
-
-  const sendMessage = async (rawText) => {
-    const text = rawText.trim();
-    if (!text) return;
-
-    const userMessage = {
-      id: createId(),
-      role: 'user',
-      text,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsTyping(true);
-    setError('');
+  useEffect(() => {
+    if (!isOpen) return;
     scrollToEnd();
+  }, [isOpen, messages, isTyping]);
 
+  const handleSend = async (event) => {
+    event.preventDefault();
+    const text = input.trim();
+    if (!text) return;
+    setInput('');
     try {
-      const conversation = [
-        CHAT_PRIMER,
-        ...messages,
-        userMessage,
-      ].map((message) => ({
-        role: message.role,
-        content: message.text,
-      }));
-      const reply = await chatWithAssistant(conversation);
-      setMessages((prev) => [
-        ...prev,
-        { id: createId(), role: 'assistant', text: reply },
-      ]);
-    } catch (err) {
-      setError(err.message || 'Unable to reach the AI assistant.');
+      await sendMessage(text);
+    } catch {
+      // errors handled by hook
     } finally {
-      setIsTyping(false);
       scrollToEnd();
     }
   };

@@ -1,12 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import TaskModal from '../components/TaskModal';
 
-export default function CalendarPage({ tasks }) {
+export default function CalendarPage({ tasks, onAddTask, onOpenTask }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(() =>
     new Date().toISOString().split('T')[0]
   );
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isTaskModalOpen, setTaskModalOpen] = useState(false);
+  const [draftDate, setDraftDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -50,6 +53,23 @@ export default function CalendarPage({ tasks }) {
     });
   };
 
+  const handleCreateTask = async (payload) => {
+    if (!onAddTask) return { success: false, error: 'Task creation unavailable' };
+    const result = await onAddTask({
+      ...payload,
+      dueDate: payload.dueDate || draftDate || selectedDate,
+    });
+    if (result?.success) {
+      setTaskModalOpen(false);
+    }
+    return result;
+  };
+
+  const openTaskComposer = (dateString) => {
+    setDraftDate(dateString);
+    setTaskModalOpen(true);
+  };
+
   return (
     <div className="page-shell">
       <div className="glass-panel p-6 flex flex-wrap items-center justify-between gap-4">
@@ -59,7 +79,10 @@ export default function CalendarPage({ tasks }) {
           </p>
           <h1 className="text-2xl font-semibold text-[var(--text-color)]">Calendar</h1>
         </div>
-        <button className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 shadow-lg shadow-indigo-500/20">
+        <button
+          onClick={() => openTaskComposer(selectedDate)}
+          className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+        >
           <Plus size={16} />
           Add Event
         </button>
@@ -152,7 +175,7 @@ export default function CalendarPage({ tasks }) {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center px-4">
-          <div className="glass-panel w-full max-w-xl rounded-3xl shadow-2xl">
+          <div className="glass-panel w-full max-w-xl rounded-3xl shadow-2xl" role="dialog" aria-modal="true">
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div>
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
@@ -172,21 +195,34 @@ export default function CalendarPage({ tasks }) {
             </div>
             <div className="max-h-[60vh] overflow-y-auto px-6 py-5 space-y-4">
               {selectedTasks.length === 0 ? (
-                <div className="text-sm text-[var(--muted-text)]">
-                  No tasks scheduled for this date.
+                <div className="text-sm text-[var(--muted-text)] space-y-3">
+                  <p>No tasks scheduled for this date.</p>
+                  <button
+                    onClick={() => {
+                      openTaskComposer(selectedDate);
+                      setModalOpen(false);
+                    }}
+                    className="text-xs uppercase tracking-[0.3em] text-indigo-500"
+                  >
+                    Create one
+                  </button>
                 </div>
               ) : (
                 selectedTasks.map((task) => (
-                  <div
+                  <button
                     key={task.id}
-                    className="p-4 rounded-2xl bg-black/5 flex items-center justify-between"
+                    onClick={() => {
+                      onOpenTask?.(task.id);
+                      setModalOpen(false);
+                    }}
+                    className="w-full p-4 rounded-2xl bg-black/5 flex items-center justify-between text-left"
                   >
                     <div>
                       <p className="text-sm font-medium text-[var(--text-color)]">
                         {task.title}
                       </p>
                       <p className="text-xs text-[var(--muted-text)]">
-                        {task.type} • {task.priority} priority
+                        {task.type} - {task.priority} priority
                       </p>
                     </div>
                     <span
@@ -200,7 +236,7 @@ export default function CalendarPage({ tasks }) {
                     >
                       {task.type}
                     </span>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
@@ -212,7 +248,7 @@ export default function CalendarPage({ tasks }) {
         <h3 className="text-lg font-semibold text-[var(--text-color)]">Upcoming Deadlines</h3>
         <div className="glass-panel overflow-hidden">
           {tasks
-            .filter(task => !task.completed && new Date(task.dueDate) >= new Date())
+            .filter(task => task.dueDate && !task.completed && new Date(task.dueDate) >= new Date())
             .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
             .slice(0, 5)
             .map((task, index, array) => (
@@ -243,6 +279,13 @@ export default function CalendarPage({ tasks }) {
             ))}
         </div>
       </div>
+
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => setTaskModalOpen(false)}
+        onSubmit={handleCreateTask}
+        initialValues={{ dueDate: draftDate }}
+      />
     </div>
   );
 }

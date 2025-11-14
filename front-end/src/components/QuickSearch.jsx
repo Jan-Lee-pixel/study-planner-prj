@@ -18,6 +18,7 @@ export default function QuickSearch({ isOpen, onClose, tasks = [], onSelectTask 
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
   const containerRef = useRef(null);
+  const titleId = 'quick-search-title';
 
   useEffect(() => {
     if (isOpen) {
@@ -53,6 +54,31 @@ export default function QuickSearch({ isOpen, onClose, tasks = [], onSelectTask 
       .slice(0, 10);
   }, [isOpen, query, tasks]);
 
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const node = containerRef.current;
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Tab') return;
+      const focusable = node.querySelectorAll(
+        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    node.addEventListener('keydown', handleKeyDown);
+    return () => node.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSelect = (task) => {
@@ -72,8 +98,14 @@ export default function QuickSearch({ isOpen, onClose, tasks = [], onSelectTask 
       <div
         ref={containerRef}
         className="glass-panel w-full max-w-2xl rounded-3xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         onMouseDown={(event) => event.stopPropagation()}
       >
+        <h2 id={titleId} className="sr-only">
+          Quick search
+        </h2>
         <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
           <Search size={18} className="text-[var(--muted-text)]" />
           <input
@@ -82,6 +114,7 @@ export default function QuickSearch({ isOpen, onClose, tasks = [], onSelectTask 
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tasks by name or description..."
             className="flex-1 bg-transparent text-[var(--text-color)] text-sm focus:outline-none"
+            aria-labelledby={titleId}
           />
           <button
             onClick={onClose}
@@ -94,7 +127,7 @@ export default function QuickSearch({ isOpen, onClose, tasks = [], onSelectTask 
         <div className="max-h-96 overflow-y-auto soft-scrollbar">
           {filtered.length === 0 ? (
             <div className="p-6 text-center text-[var(--muted-text)] text-sm">
-              No tasks found for “{query}”
+              No tasks found for "{query}"
             </div>
           ) : (
             filtered.map((task) => (

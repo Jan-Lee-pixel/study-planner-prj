@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Filter, Search } from 'lucide-react';
+import { Plus, Filter, Search, Inbox } from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
 
@@ -13,6 +13,7 @@ export default function TasksPage({
   onOpenTask,
   onFocusChange,
   focusTaskId,
+  pendingIds = new Set(),
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -70,6 +71,8 @@ export default function TasksPage({
   };
 
   const hasScopedFilter = Boolean(typeFilter);
+
+  const isTaskPending = (taskId) => pendingIds?.has?.(String(taskId));
 
   return (
     <div className="page-shell">
@@ -144,7 +147,7 @@ export default function TasksPage({
       <div className="glass-panel overflow-hidden">
         {sortedTasks.length === 0 ? (
           <div className="p-8 text-center text-[var(--muted-text)]">
-            <div className="text-4xl mb-2">📝</div>
+            <Inbox className="w-10 h-10 mx-auto mb-2 opacity-60" />
             <div className="text-lg font-medium mb-1">No tasks found</div>
             <div className="text-sm">
               {searchTerm
@@ -167,6 +170,7 @@ export default function TasksPage({
                   onFocusChange ? () => onFocusChange(task.id) : undefined
                 }
                 isFocused={String(task.id) === String(focusTaskId)}
+                isPending={isTaskPending(task.id)}
                 isLast={
                   index === pendingTasks.length - 1 && completedTasks.length === 0
                 }
@@ -184,6 +188,7 @@ export default function TasksPage({
                 onToggle={() => onToggleTask(task.id)}
                 onDelete={() => handleDeleteTask(task.id)}
                 onOpen={onOpenTask}
+                isPending={isTaskPending(task.id)}
                 isLast={index === completedTasks.length - 1}
               />
             ))}

@@ -103,7 +103,7 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
         const stamp = task.updated_at || task.created_at || task.dueDate || task.due_date;
         return {
           id: task.id,
-          icon: task.completed ? '✓' : '📝',
+          icon: task.completed ? <CheckSquare size={14} /> : <Calendar size={14} />,
           title: task.completed ? `Completed ${task.title}` : task.title,
           description: task.completed
             ? 'Marked as done'
@@ -124,7 +124,7 @@ export default function Dashboard({ tasks, onToggleTask, onAddTask, onNavigateAI
     <div className="page-shell">
       <section className="glass-panel p-8 grid gap-6 lg:grid-cols-[2fr,1fr]">
         <div>
-          <p className="text-sm text-[var(--muted-text)] mb-2">Welcome back 👋</p>
+          <p className="text-sm text-[var(--muted-text)] mb-2">Welcome back</p>
           <h1 className="text-3xl font-semibold text-[var(--text-color)]">
             Ready to plan your study flow?
           </h1>
@@ -293,7 +293,9 @@ function ActivityItem({ icon, title, time, description, isLast = false }) {
         !isLast ? "border-b border-white/10" : ""
       }`}
     >
-      <span className="text-base w-5 text-center">{icon}</span>
+      <span className="text-base w-5 flex justify-center text-[var(--muted-text)]">
+        {icon}
+      </span>
       <div className="flex-1">
         <div className="text-sm">{title}</div>
         <div className="text-xs text-[var(--muted-text)]">{description || time}</div>

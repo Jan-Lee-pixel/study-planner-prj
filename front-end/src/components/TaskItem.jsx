@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import { Check, Trash2, MoreVertical, Target } from 'lucide-react';
 
-export default function TaskItem({ task, onToggle, onOpen, onDelete, onFocus, isFocused = false, isLast }) {
+export default function TaskItem({
+  task,
+  onToggle,
+  onOpen,
+  onDelete,
+  onFocus,
+  isFocused = false,
+  isPending = false,
+  isLast,
+}) {
   const [showActions, setShowActions] = useState(false);
   const getTypeStyles = (type) => {
     const styles = {
@@ -30,22 +39,34 @@ export default function TaskItem({ task, onToggle, onOpen, onDelete, onFocus, is
     });
   };
 
+  const formattedDate = () => {
+    if (!task.due_date && !task.dueDate) return 'No due date';
+    return formatDate(task.due_date || task.dueDate);
+  };
+
   return (
     <div
       className={`flex items-center gap-3 px-4 py-3 hover:bg-black/5 transition-colors ${
         !isLast ? "border-b border-white/10" : ""
       }`}
     >
-      <div
-        onClick={onToggle}
-        className={`w-4.5 h-4.5 border rounded flex-shrink-0 cursor-pointer transition-all ${
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle?.(task.id);
+        }}
+        disabled={isPending}
+        aria-pressed={task.completed}
+        aria-label={task.completed ? 'Mark task as pending' : 'Mark task as complete'}
+        className={`w-4.5 h-4.5 border rounded flex-shrink-0 transition-all flex items-center justify-center ${
           task.completed
-            ? "bg-gradient-to-br from-indigo-500 to-purple-500 border-transparent flex items-center justify-center text-white"
-            : "border-white/20 hover:bg-black/5"
-        }`}
+            ? 'bg-gradient-to-br from-indigo-500 to-purple-500 border-transparent text-white'
+            : 'border-white/20 hover:bg-black/5 text-[var(--muted-text)]'
+        } ${isPending ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
       >
         {task.completed && <Check size={12} />}
-      </div>
+      </button>
       <div
         className={`flex-1 ${onOpen ? 'cursor-pointer' : ''}`}
         onClick={() => onOpen?.(task.id)}
@@ -79,7 +100,7 @@ export default function TaskItem({ task, onToggle, onOpen, onDelete, onFocus, is
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
             </span>
           )}
-          <span>{task.completed ? "Completed" : `Due: ${formatDate(task.due_date || task.dueDate)}`}</span>
+          <span>{task.completed ? "Completed" : `Due: ${formattedDate()}`}</span>
         </div>
       </div>
       

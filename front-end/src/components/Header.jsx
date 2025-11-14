@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { ArrowLeft, Bell, Calendar, LogOut, Moon, Search, Sun } from 'lucide-react';
+import { ArrowLeft, Bell, Calendar, LogOut, Moon, Search, Sun, Menu } from 'lucide-react';
 
 const formatRelativeTime = (dateString) => {
   if (!dateString) return 'No due date';
@@ -25,6 +25,7 @@ export default function Header({
   onSelectTask,
   onNavigateTasks,
   onBack,
+  onToggleSidebar,
 }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -69,8 +70,17 @@ export default function Header({
   }, [showNotifications]);
 
   return (
-    <div className="sticky top-0 z-30 px-8 py-5 flex items-center justify-between bg-[var(--app-bg)]/90 backdrop-blur-xl border-b border-white/10">
+    <div className="sticky top-0 z-30 px-4 lg:px-8 py-5 flex items-center justify-between bg-[var(--app-bg)]/90 backdrop-blur-xl border-b border-white/10">
       <div className="flex items-center gap-3">
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="lg:hidden w-10 h-10 rounded-full bg-black/5 text-[var(--muted-text)] flex items-center justify-center hover:bg-black/10 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu size={18} />
+          </button>
+        )}
         {onBack && (
           <button
             onClick={onBack}
@@ -136,7 +146,7 @@ export default function Header({
               <div className="max-h-80 overflow-y-auto soft-scrollbar">
                 {notifications.length === 0 ? (
                   <div className="p-4 text-sm text-[var(--muted-text)] text-center">
-                    You're all caught up ✨
+                    You're all caught up
                   </div>
                 ) : (
                   notifications.map((task) => (

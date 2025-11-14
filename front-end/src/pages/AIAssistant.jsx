@@ -1,36 +1,24 @@
 import React, { useState } from 'react';
 import { Sparkles, FileText, BookOpen, Send, Copy, Download, AlertCircle } from 'lucide-react';
-import { generateAIContent } from '../services/aiService';
+import { useAIComposer } from '../hooks/useAI';
 
 export default function AIAssistant() {
-  const [activeTab, setActiveTab] = useState('quiz');
-  const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
   const tabs = [
     { id: 'quiz', label: 'Generate Quiz', icon: <Sparkles size={16} /> },
     { id: 'summarize', label: 'Summarize Notes', icon: <FileText size={16} /> },
     { id: 'lesson', label: 'Create Lesson', icon: <BookOpen size={16} /> },
   ];
-
-  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState(tabs[0].id);
+  const [input, setInput] = useState('');
+  const { output, isLoading, error, generate } = useAIComposer(tabs[0].id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
-
-    setIsLoading(true);
-    setError('');
-
     try {
-      const result = await generateAIContent({ mode: activeTab, prompt: input });
-      setOutput(result);
-    } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
-      setOutput('');
-    } finally {
-      setIsLoading(false);
+      await generate({ mode: activeTab, prompt: input });
+    } catch {
+      // errors surfaced via hook state
     }
   };
 
@@ -148,8 +136,8 @@ export default function AIAssistant() {
               </div>
             ) : (
               <div className="h-64 flex items-center justify-center text-[var(--muted-text)]">
-                <div className="text-center">
-                  <div className="text-4xl mb-2">🤖</div>
+                <div className="text-center space-y-2">
+                  <Sparkles className="w-10 h-10 mx-auto text-indigo-500" />
                   <div>AI-generated content will appear here</div>
                 </div>
               </div>
@@ -159,27 +147,27 @@ export default function AIAssistant() {
       </div>
 
       <div className="glass-panel p-4 rounded-2xl">
-        <h3 className="font-semibold text-[var(--text-color)] mb-2">💡 Tips for better results</h3>
+        <h3 className="font-semibold text-[var(--text-color)] mb-2">Tips for better results</h3>
         <ul className="text-sm text-[var(--muted-text)] space-y-1">
           {activeTab === 'quiz' && (
             <>
-              <li>• Be specific about the topic and difficulty level</li>
-              <li>• Include key concepts you want to focus on</li>
-              <li>• Mention the type of questions you prefer (multiple choice, true/false, etc.)</li>
+              <li>- Be specific about the topic and difficulty level</li>
+              <li>- Include key concepts you want to focus on</li>
+              <li>- Mention the type of questions you prefer (multiple choice, true/false, etc.)</li>
             </>
           )}
           {activeTab === 'summarize' && (
             <>
-              <li>• Provide clear, well-structured text for better summaries</li>
-              <li>• Include main headings and key points in your input</li>
-              <li>• Specify if you want a particular summary length or focus</li>
+              <li>- Provide clear, well-structured text for better summaries</li>
+              <li>- Include main headings and key points in your input</li>
+              <li>- Specify if you want a particular summary length or focus</li>
             </>
           )}
           {activeTab === 'lesson' && (
             <>
-              <li>• Specify the target audience and difficulty level</li>
-              <li>• Include learning objectives you want to achieve</li>
-              <li>• Mention any specific teaching methods or activities you prefer</li>
+              <li>- Specify the target audience and difficulty level</li>
+              <li>- Include learning objectives you want to achieve</li>
+              <li>- Mention any specific teaching methods or activities you prefer</li>
             </>
           )}
         </ul>

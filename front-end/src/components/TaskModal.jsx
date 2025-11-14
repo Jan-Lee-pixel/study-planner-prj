@@ -1,32 +1,56 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Calendar, Flag, Layers3, PenLine, Pencil, X } from 'lucide-react';
 
-export default function TaskModal({ isOpen, onClose, onSubmit, task = null }) {
-  const baseState = {
-    title: task?.title || "",
-    type: task?.type || "assignment",
-    priority: task?.priority || "medium",
-    dueDate: task?.dueDate || task?.due_date || "",
-    description: task?.description || "",
-  };
+export default function TaskModal({ isOpen, onClose, onSubmit, task = null, initialValues = {} }) {
+  const dialogRef = useRef(null);
+  const titleId = 'task-modal-title';
 
-  const [formData, setFormData] = useState(baseState);
+  const deriveState = () => ({
+    title: task?.title || initialValues.title || "",
+    type: task?.type || initialValues.type || "assignment",
+    priority: task?.priority || initialValues.priority || "medium",
+    dueDate: task?.dueDate || task?.due_date || initialValues.dueDate || "",
+    description: task?.description || initialValues.description || "",
+  });
+
+  const [formData, setFormData] = useState(deriveState);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        title: task?.title || "",
-        type: task?.type || "assignment",
-        priority: task?.priority || "medium",
-        dueDate: task?.dueDate || task?.due_date || "",
-        description: task?.description || "",
-      });
+      setFormData(deriveState());
       setSubmitError('');
+      const firstField = dialogRef.current?.querySelector('input, textarea');
+      firstField?.focus();
     }
   }, [task, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+    const node = dialogRef.current;
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Tab') return;
+      const focusable = node.querySelectorAll(
+        'button, [href], input, textarea, select, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    node.addEventListener('keydown', handleKeyDown);
+    return () => node.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,13 +62,7 @@ export default function TaskModal({ isOpen, onClose, onSubmit, task = null }) {
     try {
       const result = await onSubmit(formData);
       if (result?.success) {
-        setFormData({
-          title: "",
-          type: "assignment",
-          priority: "medium",
-          dueDate: "",
-          description: "",
-        });
+        setFormData(deriveState());
         onClose();
       } else {
         setSubmitError(result?.error || 'Failed to save task');
@@ -60,7 +78,13 @@ export default function TaskModal({ isOpen, onClose, onSubmit, task = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center px-4 py-10">
-      <div className="glass-panel w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        className="glass-panel w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
@@ -68,7 +92,7 @@ export default function TaskModal({ isOpen, onClose, onSubmit, task = null }) {
             </div>
             <div className="flex items-center gap-2 mt-1 text-[var(--text-color)]">
               <PenLine size={16} className="text-indigo-500" />
-              <h2 className="text-2xl font-semibold">
+              <h2 id={titleId} className="text-2xl font-semibold">
                 {task ? 'Edit task details' : 'Add a new task'}
               </h2>
             </div>
