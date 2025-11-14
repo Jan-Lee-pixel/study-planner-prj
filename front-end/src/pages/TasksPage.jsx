@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Plus, Filter, Search, Inbox } from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function TasksPage({
   title = 'All Tasks',
@@ -19,6 +20,7 @@ export default function TasksPage({
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('dueDate');
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   const scopedTasks = useMemo(() => {
     if (!typeFilter) return tasks;
@@ -64,11 +66,18 @@ export default function TasksPage({
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      await onDeleteTask(taskId);
+  const requestDeleteTask = (taskId) => {
+    setTaskToDelete(taskId);
+  };
+
+  const confirmDelete = async () => {
+    if (taskToDelete) {
+      await onDeleteTask(taskToDelete);
+      setTaskToDelete(null);
     }
   };
+
+  const cancelDelete = () => setTaskToDelete(null);
 
   const hasScopedFilter = Boolean(typeFilter);
 
@@ -164,7 +173,7 @@ export default function TasksPage({
                 key={task.id}
                 task={task}
                 onToggle={() => onToggleTask(task.id)}
-                onDelete={() => handleDeleteTask(task.id)}
+                onDelete={() => requestDeleteTask(task.id)}
                 onOpen={onOpenTask}
                 onFocus={
                   onFocusChange ? () => onFocusChange(task.id) : undefined
@@ -186,7 +195,7 @@ export default function TasksPage({
                 key={task.id}
                 task={task}
                 onToggle={() => onToggleTask(task.id)}
-                onDelete={() => handleDeleteTask(task.id)}
+                onDelete={() => requestDeleteTask(task.id)}
                 onOpen={onOpenTask}
                 isPending={isTaskPending(task.id)}
                 isLast={index === completedTasks.length - 1}
@@ -200,6 +209,15 @@ export default function TasksPage({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateTask}
+      />
+      <ConfirmDialog
+        isOpen={Boolean(taskToDelete)}
+        title="Delete task"
+        description="Delete this task permanently? You won't be able to recover it."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
       />
     </div>
   );

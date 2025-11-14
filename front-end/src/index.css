@@ -3,24 +3,42 @@
 :root {
   font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color-scheme: light;
-  --app-bg: #f6f7fb;
-  --panel-bg: rgba(255, 255, 255, 0.9);
-  --panel-border: rgba(15, 23, 42, 0.08);
-  --panel-shadow: 0 20px 45px -20px rgba(15, 23, 42, 0.35);
-  --text-color: #0f172a;
-  --muted-text: #475569;
-  --accent: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --app-bg: #fffdfc;
+  --panel-bg: rgba(255, 255, 255, 0.95);
+  --panel-border: rgba(167, 139, 250, 0.25);
+  --panel-shadow: 0 30px 45px -30px rgba(167, 139, 250, 0.35);
+  --text-color: #1f2937;
+  --muted-text: #6b7280;
+  --accent: linear-gradient(135deg, #a78bfa, #f0abfc);
+  --accent-solid: #a78bfa;
+  --accent-text: #1f2937;
+  --accent-shadow: rgba(167, 139, 250, 0.4);
+  --focus-ring: #c4b5fd;
+  --focus-card-bg: #fff7eb;
+  --focus-card-border: #fde68a;
+  --focus-card-accent: #fbbf24;
+  --task-highlight-high: #fff5f5;
+  --task-highlight-default: rgba(255, 255, 255, 0.04);
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --app-bg: #0b1120;
-  --panel-bg: rgba(15, 23, 42, 0.85);
-  --panel-border: rgba(148, 163, 184, 0.25);
-  --panel-shadow: 0 25px 55px -25px rgba(15, 23, 42, 0.9);
+  --app-bg: #101631;
+  --panel-bg: rgba(19, 25, 52, 0.92);
+  --panel-border: rgba(152, 118, 220, 0.35);
+  --panel-shadow: 0 35px 70px -40px rgba(5, 8, 20, 0.85);
   --text-color: #f8fafc;
   --muted-text: #cbd5f5;
-  --accent: linear-gradient(135deg, #a78bfa, #6366f1);
+  --accent: linear-gradient(135deg, #7c3aed, #f472b6);
+  --accent-solid: #7c3aed;
+  --accent-text: #fdf2ff;
+  --accent-shadow: rgba(124, 58, 237, 0.45);
+  --focus-ring: #a78bfa;
+  --focus-card-bg: rgba(255, 247, 235, 0.08);
+  --focus-card-border: rgba(251, 191, 36, 0.4);
+  --focus-card-accent: #fcd34d;
+  --task-highlight-high: rgba(255, 87, 87, 0.12);
+  --task-highlight-default: rgba(255, 255, 255, 0.04);
 }
 
 * {

@@ -70,6 +70,7 @@ export default function Dashboard({
   focusTaskId,
   onFocusChange,
   onManageFocus,
+  onNavigateTasks,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -121,10 +122,15 @@ export default function Dashboard({
     },
   ];
 
+  const priorityWeight = { high: 0, medium: 1, low: 2 };
   const upcomingTasks = useMemo(() => {
     return [...tasks]
       .filter((task) => !task.completed)
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .sort((a, b) => {
+        const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
+        if (dueDiff !== 0) return dueDiff;
+        return (priorityWeight[a.priority] ?? 3) - (priorityWeight[b.priority] ?? 3);
+      })
       .slice(0, 5);
   }, [tasks]);
 
@@ -230,24 +236,24 @@ export default function Dashboard({
   return (
     <div className="page-shell space-y-6">
       <section className="grid gap-4 xl:grid-cols-[1.4fr,1fr]">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-fuchsia-600 text-white shadow-xl">
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.5),_transparent_65%)]" />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#cbd5ff] via-[#f5d3ff] to-[#ffe4f5] text-[#1f2937] shadow-xl">
+          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.7),_transparent_65%)]" />
           <div className="relative z-10 p-8 flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-white/70">Study Planner</p>
+              <p className="text-sm uppercase tracking-[0.3em] text-[#6b7280]">Study Planner</p>
               <h1 className="mt-2 text-3xl font-semibold">Ready to plan your flow?</h1>
-              <p className="mt-2 text-sm text-white/80">{heroSubtitle}</p>
+              <p className="mt-2 text-sm text-[#4b5563]">{heroSubtitle}</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-2 rounded-full text-sm font-semibold bg-white text-indigo-600 flex items-center gap-2"
+                  className="px-4 py-2 rounded-full text-sm font-semibold bg-white text-[#7c3aed] flex items-center gap-2 shadow-sm"
                 >
                   <Plus size={16} />
                   Create task
                 </button>
                 <button
                   onClick={() => onNavigateAI?.()}
-                  className="px-4 py-2 rounded-full text-sm font-semibold border border-white/30 text-white/90 flex items-center gap-2"
+                  className="px-4 py-2 rounded-full text-sm font-semibold border border-white/40 text-[#374151] flex items-center gap-2 bg-white/70"
                 >
                   <Sparkles size={16} />
                   Open AI workspace
@@ -256,15 +262,17 @@ export default function Dashboard({
             </div>
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <p className="text-sm text-white/70">Overdue</p>
-                <p className="text-3xl font-semibold">{stats.overdue}</p>
-                <p className="text-xs text-white/70 mt-1">Requires attention</p>
+                <p className="text-sm text-[#6b7280]">Overdue</p>
+                <p className={`text-3xl font-semibold ${stats.overdue ? 'text-[#dc2626]' : ''}`}>
+                  {stats.overdue}
+                </p>
+                <p className="text-xs text-[#6b7280] mt-1">Requires attention</p>
               </div>
               <div
-                className="w-28 h-28 rounded-full p-2 shadow-inner shadow-black/40"
+                className="w-28 h-28 rounded-full p-2 shadow-inner shadow-black/10"
                 style={completionBackground}
               >
-                <div className="w-full h-full rounded-full bg-white/90 text-center flex flex-col items-center justify-center text-indigo-600">
+                <div className="w-full h-full rounded-full bg-white/90 text-center flex flex-col items-center justify-center text-[#1f2937]">
                   <span className="text-2xl font-semibold">{completionRate}%</span>
                   <span className="text-xs uppercase tracking-[0.3em]">Complete</span>
                 </div>
@@ -274,14 +282,14 @@ export default function Dashboard({
         </div>
         <div className="glass-panel rounded-3xl p-6 space-y-6">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">Focus task</p>
+            <div className="rounded-2xl p-4 flex-1 bg-[var(--focus-card-bg,#fff7eb)] border border-[var(--focus-card-border,#fde68a)]">
+              <p className="text-xs uppercase tracking-[0.3em] text-[var(--focus-card-accent,#fbbf24)]">Focus task</p>
               {focusTask ? (
                 <>
                   <h3 className="mt-3 text-lg font-semibold text-[var(--text-color)]">
                     {focusTask.title}
                   </h3>
-                  <p className="text-sm text-[var(--muted-text)]">
+                  <p className="text-sm text-[var(--focus-card-accent,#fbbf24)] font-semibold">
                     Due {formatShortDate(focusTask.dueDate)}
                   </p>
                 </>
@@ -324,6 +332,83 @@ export default function Dashboard({
               </button>
             ))}
           </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
+                Next up
+              </p>
+              <div className="flex items-center gap-3 text-xs text-[var(--muted-text)]">
+                <span>
+                {Math.min(upcomingTasks.length, 3)} of {upcomingTasks.length}
+              </span>
+              {onNavigateTasks && upcomingTasks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onNavigateTasks}
+                  className="inline-flex items-center gap-1 font-semibold text-[#7c3aed] hover:text-[#5b2db5] transition-colors"
+                >
+                  See more
+                    <svg
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-3.5 h-3.5"
+                    >
+                      <path
+                        d="M3 8h10M9 4l4 4-4 4"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            {upcomingTasks.length === 0 ? (
+              <div className="text-xs text-[var(--muted-text)]">
+                No upcoming deadlines. Create a task to get started.
+              </div>
+            ) : (
+              upcomingTasks.slice(0, 3).map((task) => (
+                <button
+                  key={task.id}
+                  onClick={() => onOpenTask?.(task.id)}
+                  className="w-full rounded-2xl px-3 py-2 flex items-center justify-between text-left border transition-colors"
+                  style={{
+                    background:
+                      task.priority === 'high'
+                        ? 'var(--task-highlight-high)'
+                        : 'var(--task-highlight-default)',
+                    borderColor: task.priority === 'high' ? '#fecdd3' : 'rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <div>
+                    <p className="text-sm font-medium text-[var(--text-color)] truncate">
+                      {task.title}
+                    </p>
+                    <p
+                      className={`text-xs ${
+                        task.priority === 'high'
+                          ? 'text-[#fca5a5]'
+                          : 'text-[var(--muted-text)]'
+                      }`}
+                    >
+                      Due {formatShortDate(task.dueDate)}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-xs uppercase tracking-[0.2em] ${
+                      task.priority === 'high' ? 'text-[#f87171]' : 'text-[var(--muted-text)]'
+                    }`}
+                  >
+                    {task.priority}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       </section>
 
@@ -340,7 +425,7 @@ export default function Dashboard({
               <h2 className="text-lg font-semibold text-[var(--text-color)]">Week timeline</h2>
               <p className="text-sm text-[var(--muted-text)]">Upcoming deadlines for the next 7 days</p>
             </div>
-            <span className="text-xs font-semibold text-indigo-500 bg-indigo-500/10 px-3 py-1 rounded-full">
+            <span className="text-xs font-semibold text-[#7c3aed] bg-[#ede9fe] px-3 py-1 rounded-full">
               {weekTimeline.length} tasks
             </span>
           </div>
@@ -356,7 +441,7 @@ export default function Dashboard({
                   onClick={() => onOpenTask?.(task.id)}
                   className="w-full flex items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 text-left hover:bg-black/5 transition-colors"
                 >
-                  <div className="text-sm font-semibold text-indigo-500 w-16">
+                  <div className={`text-sm font-semibold ${task.priority === 'high' ? 'text-[#dc2626]' : 'text-[#7c3aed]'} w-16`}>
                     {formatDayLabel(task.dueDate)}
                   </div>
                   <div className="flex-1">
@@ -366,7 +451,7 @@ export default function Dashboard({
                       {formatTimeLabel(task.dueDate) || 'All day'}
                     </p>
                   </div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--muted-text)]">
+                  <div className={`text-xs font-semibold uppercase tracking-[0.3em] ${task.priority === 'high' ? 'text-[#dc2626]' : 'text-[var(--muted-text)]'}`}>
                     {task.priority}
                   </div>
                 </button>

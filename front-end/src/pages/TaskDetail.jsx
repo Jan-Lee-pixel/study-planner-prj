@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, CheckCircle2, Clock, Edit3, Flag, Trash2 } from 'lucide-react';
 import TaskModal from '../components/TaskModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const formatDate = (value) => {
   if (!value) return 'No due date';
@@ -33,6 +34,7 @@ export default function TaskDetail({
   onUpdateTask,
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isConfirmOpen, setConfirmOpen] = useState(false);
   const dueDate = task?.dueDate || task?.due_date;
 
   const meta = useMemo(() => {
@@ -74,8 +76,12 @@ export default function TaskDetail({
   }
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this task permanently?')) return;
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
     const result = await onDeleteTask?.(task.id);
+    setConfirmOpen(false);
     if (result?.success || result === undefined) {
       onBack?.();
     }
@@ -182,6 +188,15 @@ export default function TaskDetail({
         onClose={() => setIsEditing(false)}
         onSubmit={(formData) => handleUpdate(formData)}
         task={task}
+      />
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title="Delete task"
+        description="Delete this task permanently? You won't be able to recover it."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmOpen(false)}
       />
     </div>
   );

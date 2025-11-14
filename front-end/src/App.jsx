@@ -246,6 +246,7 @@ function AuthenticatedApp({ user, onSignOut, theme, toggleTheme }) {
                     focusTaskId={focusTaskId}
                     onFocusChange={handleFocusChange}
                     onManageFocus={() => navigate('/tasks')}
+                    onNavigateTasks={() => navigate('/tasks')}
                   />
                 )}
               />

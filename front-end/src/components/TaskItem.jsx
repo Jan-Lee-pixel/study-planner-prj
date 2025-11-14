@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Trash2, MoreVertical, Target } from 'lucide-react';
 
-export default function TaskItem({
+function TaskItem({
   task,
   onToggle,
   onOpen,
@@ -44,12 +44,29 @@ export default function TaskItem({
     return formatDate(task.due_date || task.dueDate);
   };
 
+  const isHighPriority = !task.completed && task.priority === 'high';
+  const containerClasses = [
+    'flex items-center gap-3 px-4 py-3 transition-colors rounded-2xl',
+    !isFocused && !isHighPriority ? 'hover:bg-black/5' : '',
+    !isFocused && !isHighPriority && !isLast ? 'border-b border-white/10 rounded-none' : '',
+    isFocused ? 'bg-[var(--focus-card-bg)] ring-1 ring-[var(--focus-card-accent)]/50 shadow-inner' : '',
+    !isFocused && isHighPriority ? 'bg-[var(--task-highlight-high)] border border-[#fecdd3]' : '',
+    !isFocused && !isHighPriority ? `bg-[var(--task-highlight-default)]` : '',
+  ]
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const dueDateClass = `text-xs ${
+    isFocused
+      ? 'text-[var(--focus-card-accent)]'
+      : isHighPriority
+      ? 'text-[#fca5a5]'
+      : 'text-[var(--muted-text)]'
+  }`;
+
   return (
-    <div
-      className={`flex items-center gap-3 px-4 py-3 hover:bg-black/5 transition-colors ${
-        !isLast ? "border-b border-white/10" : ""
-      }`}
-    >
+    <div className={containerClasses}>
       <button
         type="button"
         onClick={(event) => {
@@ -100,7 +117,9 @@ export default function TaskItem({
               {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
             </span>
           )}
-          <span>{task.completed ? "Completed" : `Due: ${formattedDate()}`}</span>
+          <span className={dueDateClass}>
+            {task.completed ? "Completed" : `Due: ${formattedDate()}`}
+          </span>
         </div>
       </div>
       
@@ -149,3 +168,5 @@ export default function TaskItem({
     </div>
   );
 }
+
+export default TaskItem;
