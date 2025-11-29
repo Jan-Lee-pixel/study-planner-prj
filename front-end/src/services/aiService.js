@@ -1,112 +1,80 @@
-const GEMINI_MODELS = {
-  quiz: 'models/gemini-1.5-flash',
-  summarize: 'models/gemini-1.5-flash',
-  lesson: 'models/gemini-1.5-flash',
-  chat: 'models/gemini-1.5-flash',
-};
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { wait } from '@testing-library/user-event/dist/cjs/utils/index.js';
 
-const MODE_PRIMERS = {
-  quiz:
-    'You are a helpful study partner that creates concise, well-structured quizzes with answers and explanations.',
-  summarize:
-    'You are a precise academic summarizer. Produce outline-style notes that retain key details and emphasis.',
-  lesson:
-    'You design lesson plans that include objectives, pacing, and actionable practice ideas.',
-  default:
-    'You assist students with study planning. Provide organized, clear responses.',
-};
-
-const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-
-const getApiKey = () => {
+// Initialize the API with your key
+const getClient = () => {
   const key = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!key) {
-    throw new Error(
-      'Missing Gemini API key. Set VITE_GEMINI_API_KEY in your .env file.',
-    );
-  }
-  return key;
+  if (!key) throw new Error('Missing Gemini API key in .env');
+  return new GoogleGenerativeAI(key);
 };
 
-const extractText = (data) => {
-  const parts =
-    data?.candidates?.[0]?.content?.parts ??
-    data?.candidates?.[0]?.output ??
-    [];
-  return parts
-    .map((part) => {
-      if (typeof part === 'string') return part;
-      return part?.text || '';
-    })
-    .join('\n')
-    .trim();
-};
-
-const buildContent = (role, text) => ({
-  role,
-  parts: [{ text }],
-});
-
-const requestGemini = async ({ model, body }) => {
-  const apiKey = getApiKey();
-  const response = await fetch(`${API_BASE}/${model}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(
-      error?.error?.message || 'Gemini request failed. Please try again.',
-    );
-  }
-
-  const data = await response.json();
-  const text = extractText(data);
-
-  if (!text) {
-    throw new Error('Gemini returned an empty response. Refine your prompt.');
-  }
-
-  return text;
+// Define the primers
+const MODE_PRIMERS = {
+  quiz: `You are a strict teacher. Create a 5-question multiple choice quiz. 
+  Format: 
+  1. Question
+  A) Option
+  B) Option
+  C) Option
+  D) Option
+  **Answer: X**`,
+  
+  summarize: 'You are a precise academic summarizer. Use bullet points and bold key terms.',
+  lesson: 'Create a lesson plan with: 1. Objectives, 2. Key Concepts, 3. Examples, 4. Practice.',
+  chat: 'You are a helpful study assistant.',
+  default: 'Provide organized, clear responses.',
 };
 
 export async function generateAIContent({ mode, prompt }) {
-  if (!prompt?.trim()) {
-    throw new Error('Please provide some context for the AI.');
+  if (!prompt?.trim()) throw new Error('Context required.');
+
+  try {
+    const genAI = getClient();
+    
+    // WE ARE USING YOUR SPECIFIC MODEL HERE
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash", 
+      systemInstruction: MODE_PRIMERS[mode] || MODE_PRIMERS.default
+    });
+
+    const result = await model.generateContent(prompt.trim());
+    const response = await result.response;
+    return response.text();
+    
+  } catch (error) {
+    console.error("AI Service Error:", error);
+    throw new Error(error.message || "Failed to generate content");
   }
-
-  const model = GEMINI_MODELS[mode] || GEMINI_MODELS.quiz;
-  const primer = MODE_PRIMERS[mode] || MODE_PRIMERS.default;
-  const content = [
-    buildContent(
-      'user',
-      `${primer}\n\nTopic or input:\n${prompt.trim()}`,
-    ),
-  ];
-
-  return requestGemini({
-    model,
-    body: {
-      contents: content,
-    },
-  });
 }
 
 export async function chatWithAssistant(history) {
-  if (!history?.length) {
-    throw new Error('Conversation history is empty.');
+  if (!history?.length) throw new Error('History empty.');
+
+  try {
+    const genAI = getClient();
+    
+    // UPDATE THIS LINE TOO
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      systemInstruction: MODE_PRIMERS.chat
+    });
+
+    // Convert history to SDK format
+    const chatHistory = history.slice(0, -1).map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+
+    const chat = model.startChat({ history: chatHistory });
+    
+    // Send the last message
+    const lastMsg = history[history.length - 1].content;
+    const result = await chat.sendMessage(lastMsg);
+    const response = await result.response;
+    return response.text();
+
+  } catch (error) {
+    console.error("Chat Error:", error);
+    throw new Error(error.message || "Failed to chat");
   }
-
-  const normalizedHistory = history.map(({ role, content }) =>
-    buildContent(role === 'assistant' ? 'model' : 'user', content),
-  );
-
-  return requestGemini({
-    model: GEMINI_MODELS.chat,
-    body: {
-      contents: normalizedHistory,
-    },
-  });
 }
