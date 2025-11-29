@@ -17,7 +17,7 @@ import {
   Download,
   Maximize2,
   Minimize2,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 export default function AIAssistant() {
@@ -36,7 +36,7 @@ export default function AIAssistant() {
   const [error, setError] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-  
+
   // Drag & Drop States
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
@@ -99,7 +99,9 @@ export default function AIAssistant() {
 
   return (
     <div className="page-shell max-w-6xl mx-auto">
-      <h1 className="text-2xl font-semibold text-[var(--text-color)] mb-6">AI Study Assistant</h1>
+      <h1 className="text-2xl font-semibold text-[var(--text-color)] mb-6">
+        AI Study Assistant
+      </h1>
 
       {/* TABS */}
       <div className="flex gap-2 mb-6 border-b border-white/10 pb-1">
@@ -112,11 +114,10 @@ export default function AIAssistant() {
               setIsExpanded(false);
               setError("");
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-all ${
-              activeTab === tab.id
+            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-all ${activeTab === tab.id
                 ? "bg-indigo-500/10 text-indigo-400 border-b-2 border-indigo-500"
                 : "text-[var(--muted-text)] hover:text-[var(--text-color)]"
-            }`}
+              }`}
           >
             {tab.icon} {tab.label}
           </button>
@@ -124,13 +125,15 @@ export default function AIAssistant() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[600px]">
-        
         {/* LEFT COLUMN: INPUT (Hidden when Expanded) */}
-        <div className={`flex flex-col gap-4 ${isExpanded ? "hidden" : "flex"}`}>
+        <div
+          className={`flex flex-col gap-4 ${isExpanded ? "hidden" : "flex"}`}
+        >
           <div
-            className={`glass-panel flex-1 rounded-2xl p-4 flex flex-col transition-all ${
-              isDragging ? "border-2 border-dashed border-indigo-500 bg-indigo-500/5" : ""
-            }`}
+            className={`glass-panel flex-1 rounded-2xl p-4 flex flex-col transition-all ${isDragging
+                ? "border-2 border-dashed border-indigo-500 bg-indigo-500/5"
+                : ""
+              }`}
             onDragOver={(e) => {
               e.preventDefault();
               setIsDragging(true);
@@ -152,7 +155,10 @@ export default function AIAssistant() {
               <div className="flex items-center gap-2 bg-indigo-500/20 text-indigo-300 px-3 py-2 rounded-lg text-sm w-fit mb-4">
                 <Paperclip size={14} />
                 <span className="truncate max-w-[200px]">{file.name}</span>
-                <button onClick={() => setFile(null)} className="hover:text-white">
+                <button
+                  onClick={() => setFile(null)}
+                  className="hover:text-white"
+                >
                   <X size={14} />
                 </button>
               </div>
@@ -173,7 +179,7 @@ export default function AIAssistant() {
                   ref={fileInputRef}
                   onChange={handleFileSelect}
                   className="hidden"
-                  accept="image/*,application/pdf,text/plain,.docx"
+                  accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,application/pdf,text/plain"
                 />
               </div>
 
@@ -195,15 +201,16 @@ export default function AIAssistant() {
 
         {/* RIGHT COLUMN: OUTPUT (Full Width when Expanded) */}
         <div
-          className={`glass-panel rounded-2xl overflow-hidden flex flex-col relative h-full transition-all duration-300 ${
-            isExpanded ? "lg:col-span-2" : ""
-          }`}
+          className={`glass-panel rounded-2xl overflow-hidden flex flex-col relative h-full transition-all duration-300 ${isExpanded ? "lg:col-span-2" : ""
+            }`}
         >
           {/* Header Action Bar */}
           {output && !isLoading && (
             <div className="flex items-center justify-between px-6 py-3 border-b border-white/10 bg-black/20">
               <span className="text-xs font-medium text-indigo-300 uppercase tracking-wider">
-                {activeTab === "quiz" ? "Interactive Quiz" : "Generated Content"}
+                {activeTab === "quiz"
+                  ? "Interactive Quiz"
+                  : "Generated Content"}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -211,7 +218,11 @@ export default function AIAssistant() {
                   className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                   title="Copy"
                 >
-                  {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                  {copied ? (
+                    <Check size={16} className="text-green-400" />
+                  ) : (
+                    <Copy size={16} />
+                  )}
                 </button>
                 <button
                   onClick={handleDownload}
@@ -225,14 +236,17 @@ export default function AIAssistant() {
                 <div className="w-px h-4 bg-white/10 mx-1"></div>
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isExpanded
+                  className={`p-2 rounded-lg transition-colors ${isExpanded
                       ? "text-indigo-400 bg-indigo-500/10"
                       : "text-gray-400 hover:text-white hover:bg-white/10"
-                  }`}
+                    }`}
                   title={isExpanded ? "Restore View" : "Full Screen"}
                 >
-                  {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  {isExpanded ? (
+                    <Minimize2 size={16} />
+                  ) : (
+                    <Maximize2 size={16} />
+                  )}
                 </button>
               </div>
             </div>
@@ -249,7 +263,9 @@ export default function AIAssistant() {
           {/* Loading State */}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-10">
-              <div className="animate-pulse text-indigo-400 font-medium">Thinking...</div>
+              <div className="animate-pulse text-indigo-400 font-medium">
+                Thinking...
+              </div>
             </div>
           )}
 
@@ -272,26 +288,49 @@ export default function AIAssistant() {
                     remarkPlugins={[remarkGfm]}
                     components={{
                       ul: ({ node, ...props }) => (
-                        <ul className="list-disc pl-6 space-y-2 my-4" {...props} />
+                        <ul
+                          className="list-disc pl-6 space-y-2 my-4"
+                          {...props}
+                        />
                       ),
                       ol: ({ node, ...props }) => (
-                        <ol className="list-decimal pl-6 space-y-2 my-4" {...props} />
+                        <ol
+                          className="list-decimal pl-6 space-y-2 my-4"
+                          {...props}
+                        />
                       ),
-                      li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                      li: ({ node, ...props }) => (
+                        <li className="pl-1" {...props} />
+                      ),
                       strong: ({ node, ...props }) => (
-                        <strong className="font-bold text-indigo-400" {...props} />
+                        <strong
+                          className="font-bold text-indigo-400"
+                          {...props}
+                        />
                       ),
                       h1: ({ node, ...props }) => (
-                        <h1 className="text-3xl font-bold border-b border-white/10 pb-2 mt-6 mb-4" {...props} />
+                        <h1
+                          className="text-3xl font-bold border-b border-white/10 pb-2 mt-6 mb-4"
+                          {...props}
+                        />
                       ),
                       h2: ({ node, ...props }) => (
-                        <h2 className="text-2xl font-bold mt-8 mb-4 text-indigo-300" {...props} />
+                        <h2
+                          className="text-2xl font-bold mt-8 mb-4 text-indigo-300"
+                          {...props}
+                        />
                       ),
                       h3: ({ node, ...props }) => (
-                        <h3 className="text-xl font-bold mt-6 mb-3 text-indigo-200" {...props} />
+                        <h3
+                          className="text-xl font-bold mt-6 mb-3 text-indigo-200"
+                          {...props}
+                        />
                       ),
                       blockquote: ({ node, ...props }) => (
-                        <blockquote className="border-l-4 border-indigo-500 pl-4 italic text-gray-400 my-4" {...props} />
+                        <blockquote
+                          className="border-l-4 border-indigo-500 pl-4 italic text-gray-400 my-4"
+                          {...props}
+                        />
                       ),
                     }}
                   >
