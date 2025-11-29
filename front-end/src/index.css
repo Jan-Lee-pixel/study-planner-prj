@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+@plugin "@tailwindcss/typography";
 :root {
   font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   color-scheme: light;
