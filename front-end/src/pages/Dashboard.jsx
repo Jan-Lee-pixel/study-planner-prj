@@ -5,14 +5,17 @@ import {
   FileText,
   BookOpen,
   CheckSquare,
-  Calendar,
+  Calendar as CalendarIcon,
   BarChart3,
+  ArrowRight,
+  Clock,
+  Target,
+  MoreHorizontal
 } from 'lucide-react';
-import StatCard from '../components/StatCard';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
-import AICard from '../components/AICard';
 
+// --- HELPER FUNCTIONS ---
 const formatTimeAgo = (timestamp) => {
   if (!timestamp) return 'Just now';
   const date = new Date(timestamp);
@@ -28,38 +31,64 @@ const formatTimeAgo = (timestamp) => {
 };
 
 const formatShortDate = (value) => {
-  if (!value) return 'No due date';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'No due date';
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
-const formatDayLabel = (value) => {
   if (!value) return 'No date';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'No date';
-  return date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-const formatTimeLabel = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric' });
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 };
 
-const isWithinNextDays = (value, days = 7) => {
-  if (!value) return false;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-  const now = new Date();
-  const limit = new Date();
-  limit.setDate(limit.getDate() + days);
-  return date >= now && date <= limit;
-};
+// --- MINI COMPONENTS ---
+
+const StatWidget = ({ label, value, change, icon, colorClass, delay }) => (
+  <div 
+    className="glass-panel p-5 rounded-2xl flex flex-col justify-between hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4" 
+    style={{ animationDelay: `${delay}ms` }}
+  >
+    <div className="flex items-start justify-between">
+      <div className={`p-2.5 rounded-xl ${colorClass} bg-opacity-20 text-white shadow-sm`}>
+        {icon}
+      </div>
+      {change && (
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-text)] bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+          {change}
+        </span>
+      )}
+    </div>
+    <div className="mt-4">
+      <h3 className="text-3xl font-bold text-[var(--text-color)] tracking-tight">{value}</h3>
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted-text)] mt-1">{label}</p>
+    </div>
+  </div>
+);
+
+// UPDATED: Now accepts separate 'textColor' and 'bgColor' for cleaner look
+const QuickAction = ({ icon, title, desc, onClick, textColor, bgColor }) => (
+  <button 
+    onClick={onClick}
+    className="group relative overflow-hidden rounded-2xl bg-black/20 border border-white/5 p-5 text-left hover:border-white/10 transition-all duration-300 hover:-translate-y-1"
+  >
+    {/* Watermark Icon (Cleaner now) */}
+    <div className={`absolute -right-4 -top-4 opacity-[0.07] group-hover:opacity-[0.15] transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-6 ${textColor}`}>
+      {React.cloneElement(icon, { size: 100, strokeWidth: 1.5 })}
+    </div>
+
+    {/* Small Icon Box */}
+    <div className={`mb-4 w-12 h-12 rounded-2xl flex items-center justify-center ${bgColor} bg-opacity-20 ${textColor} shadow-lg shadow-black/20`}>
+      {React.cloneElement(icon, { size: 22 })}
+    </div>
+    
+    <h4 className="font-bold text-lg text-[var(--text-color)] relative z-10">{title}</h4>
+    <p className="text-xs text-[var(--muted-text)] mt-1 relative z-10 font-medium leading-relaxed">{desc}</p>
+  </button>
+);
+
+// --- MAIN COMPONENT ---
 
 export default function Dashboard({
   tasks,
@@ -69,11 +98,11 @@ export default function Dashboard({
   onOpenTask,
   focusTaskId,
   onFocusChange,
-  onManageFocus,
   onNavigateTasks,
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // --- LOGIC CALCULATIONS ---
   const stats = {
     total: tasks.length,
     completed: tasks.filter((t) => t.completed).length,
@@ -83,514 +112,277 @@ export default function Dashboard({
 
   const completionRate = stats.total ? Math.round((stats.completed / stats.total) * 100) : 0;
 
-  const handleCreateTask = async (taskData) => {
-    const result = await onAddTask(taskData);
-    if (result?.success) {
-      setIsModalOpen(false);
-    }
-  };
-
-  const statCards = [
-    {
-      label: 'Total Tasks',
-      value: stats.total,
-      change: stats.total ? '+3 this week' : 'Create your first task',
-      icon: <CheckSquare size={16} />,
-      accent: 'from-sky-500 to-indigo-500',
-    },
-    {
-      label: 'Completed',
-      value: stats.completed,
-      change: `${stats.completed ? Math.round((stats.completed / (stats.total || 1)) * 100) : 0}% done`,
-      icon: <CheckSquare size={16} />,
-      accent: 'from-emerald-500 to-lime-500',
-    },
-    {
-      label: 'In Progress',
-      value: stats.inProgress,
-      change: 'Due this week',
-      icon: <Calendar size={16} />,
-      accent: 'from-amber-500 to-orange-500',
-    },
-    {
-      label: 'Overdue',
-      value: stats.overdue,
-      change: 'Needs attention',
-      danger: stats.overdue > 0,
-      icon: <BarChart3 size={16} />,
-      accent: 'from-rose-500 to-red-500',
-    },
-  ];
-
-  const priorityWeight = { high: 0, medium: 1, low: 2 };
   const upcomingTasks = useMemo(() => {
     return [...tasks]
       .filter((task) => !task.completed)
-      .sort((a, b) => {
-        const dueDiff = new Date(a.dueDate) - new Date(b.dueDate);
-        if (dueDiff !== 0) return dueDiff;
-        return (priorityWeight[a.priority] ?? 3) - (priorityWeight[b.priority] ?? 3);
-      })
-      .slice(0, 5);
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+      .slice(0, 4);
   }, [tasks]);
 
   const focusTask = useMemo(() => {
-    return tasks.find((task) => String(task.id) === String(focusTaskId)) || upcomingTasks[0] || tasks[0];
+    return tasks.find((task) => String(task.id) === String(focusTaskId)) || upcomingTasks[0];
   }, [tasks, focusTaskId, upcomingTasks]);
 
-  const priorityBreakdown = useMemo(() => {
-    const base = { high: 0, medium: 0, low: 0 };
-    tasks.forEach((task) => {
-      if (task.priority && base[task.priority] !== undefined) {
-        base[task.priority] += 1;
-      }
-    });
-    const total = base.high + base.medium + base.low || 1;
-    return {
-      data: base,
-      percent: {
-        high: Math.round((base.high / total) * 100),
-        medium: Math.round((base.medium / total) * 100),
-        low: Math.round((base.low / total) * 100),
-      },
-    };
-  }, [tasks]);
-
-  const typeBreakdown = useMemo(() => {
-    const base = { assignment: 0, exam: 0, project: 0 };
-    tasks.forEach((task) => {
-      if (task.type && base[task.type] !== undefined) {
-        base[task.type] += 1;
-      }
-    });
-    const total = base.assignment + base.exam + base.project || 1;
-    return Object.entries(base).map(([type, count]) => ({
-      type,
-      count,
-      percent: Math.round((count / total) * 100),
-    }));
-  }, [tasks]);
-
-  const weekTimeline = useMemo(() => {
+  const recentActivity = useMemo(() => {
     return tasks
-      .filter((task) => !task.completed && isWithinNextDays(task.dueDate, 7))
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-      .slice(0, 6);
+      .filter(t => t.updatedAt || t.createdAt)
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .slice(0, 4);
   }, [tasks]);
 
-  const recentTasks = useMemo(() => {
-    return upcomingTasks.length > 0 ? upcomingTasks : tasks.slice(0, 5);
-  }, [upcomingTasks, tasks]);
-
-  const activityLog = useMemo(() => {
-    return tasks
-      .map((task) => {
-        const stamp = task.updated_at || task.created_at || task.dueDate || task.due_date;
-        return {
-          id: task.id,
-          icon: task.completed ? <CheckSquare size={14} /> : <Calendar size={14} />,
-          title: task.completed ? `Completed ${task.title}` : task.title,
-          description: task.completed
-            ? 'Marked as done'
-            : `Due ${formatShortDate(task.dueDate || task.due_date)}`,
-          time: formatTimeAgo(stamp),
-          raw: stamp ? new Date(stamp) : new Date(),
-        };
-      })
-      .sort((a, b) => b.raw - a.raw)
-      .slice(0, 5);
-  }, [tasks]);
-
-  const heroSubtitle = stats.total
-    ? "Here's what's on deck for you today."
-    : 'Start by creating your first task to stay on track.';
-
-  const completionBackground = {
-    background: `conic-gradient(rgba(255,255,255,0.6) ${completionRate * 3.6}deg, rgba(255,255,255,0.2) ${completionRate * 3.6}deg)`,
+  const handleCreateTask = async (taskData) => {
+    const result = await onAddTask(taskData);
+    if (result?.success) setIsModalOpen(false);
   };
 
-  const quickShortcuts = [
-    {
-      id: 'quiz',
-      icon: <Sparkles size={16} />,
-      title: 'Generate Quiz',
-      description: 'Turn your notes into practice drills.',
-      action: () => onNavigateAI?.('quiz'),
-    },
-    {
-      id: 'summarize',
-      icon: <FileText size={16} />,
-      title: 'Summarize Notes',
-      description: 'Condense key ideas for revision.',
-      action: () => onNavigateAI?.('summarize'),
-    },
-    {
-      id: 'lesson',
-      icon: <BookOpen size={16} />,
-      title: 'Plan Lesson',
-      description: 'Break down a topic into steps.',
-      action: () => onNavigateAI?.('lesson'),
-    },
-  ];
-
   return (
-    <div className="page-shell space-y-6">
-      <section className="grid gap-4 xl:grid-cols-[1.4fr,1fr]">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#cbd5ff] via-[#f5d3ff] to-[#ffe4f5] text-[#1f2937] shadow-xl">
-          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.7),_transparent_65%)]" />
-          <div className="relative z-10 p-8 flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-[#6b7280]">Study Planner</p>
-              <h1 className="mt-2 text-3xl font-semibold">Ready to plan your flow?</h1>
-              <p className="mt-2 text-sm text-[#4b5563]">{heroSubtitle}</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-4 py-2 rounded-full text-sm font-semibold bg-white text-[#7c3aed] flex items-center gap-2 shadow-sm"
-                >
-                  <Plus size={16} />
-                  Create task
-                </button>
-                <button
-                  onClick={() => onNavigateAI?.()}
-                  className="px-4 py-2 rounded-full text-sm font-semibold border border-white/40 text-[#374151] flex items-center gap-2 bg-white/70"
-                >
-                  <Sparkles size={16} />
-                  Open AI workspace
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <p className="text-sm text-[#6b7280]">Overdue</p>
-                <p className={`text-3xl font-semibold ${stats.overdue ? 'text-[#dc2626]' : ''}`}>
-                  {stats.overdue}
-                </p>
-                <p className="text-xs text-[#6b7280] mt-1">Requires attention</p>
-              </div>
-              <div
-                className="w-28 h-28 rounded-full p-2 shadow-inner shadow-black/10"
-                style={completionBackground}
-              >
-                <div className="w-full h-full rounded-full bg-white/90 text-center flex flex-col items-center justify-center text-[#1f2937]">
-                  <span className="text-2xl font-semibold">{completionRate}%</span>
-                  <span className="text-xs uppercase tracking-[0.3em]">Complete</span>
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="page-shell space-y-8 pb-10">
+      
+      {/* 1. HERO SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-indigo-400 uppercase tracking-[0.2em] mb-1">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 className="text-4xl md:text-5xl font-bold text-[var(--text-color)] tracking-tight">
+            {getGreeting()}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Student</span>.
+          </h1>
+          <p className="text-[var(--muted-text)] max-w-md text-base">
+            You have <span className="text-white font-semibold">{upcomingTasks.length} tasks</span> on deck. {stats.overdue > 0 ? `Needs attention: ${stats.overdue} overdue.` : "You're all caught up!"}
+          </p>
         </div>
-        <div className="glass-panel rounded-3xl p-6 space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="rounded-2xl p-4 flex-1 bg-[var(--focus-card-bg,#fff7eb)] border border-[var(--focus-card-border,#fde68a)]">
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--focus-card-accent,#fbbf24)]">Focus task</p>
-              {focusTask ? (
-                <>
-                  <h3 className="mt-3 text-lg font-semibold text-[var(--text-color)]">
-                    {focusTask.title}
-                  </h3>
-                  <p className="text-sm text-[var(--focus-card-accent,#fbbf24)] font-semibold">
-                    Due {formatShortDate(focusTask.dueDate)}
-                  </p>
-                </>
-              ) : (
-                <p className="mt-3 text-sm text-[var(--muted-text)]">No focus task selected.</p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              {focusTask && (
-                <button
-                  onClick={() => onOpenTask?.(focusTask.id)}
-                  className="px-3 py-1.5 rounded-full bg-black/5 text-xs font-semibold"
-                >
-                  Open
-                </button>
-              )}
-              {onManageFocus && (
-                <button
-                  onClick={onManageFocus}
-                  className="px-3 py-1.5 rounded-full border border-white/10 text-xs text-[var(--muted-text)] hover:bg-black/5"
-                >
-                  Manage focus
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {quickShortcuts.map((shortcut) => (
-              <button
-                key={shortcut.id}
-                type="button"
-                onClick={shortcut.action}
-                className="rounded-2xl border border-white/10 bg-black/3 px-3 py-3 text-left hover:bg-black/5 transition-colors"
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold text-[var(--text-color)]">
-                  {shortcut.icon}
-                  {shortcut.title}
+        <div className="flex gap-3">
+          <button
+            onClick={() => onNavigateAI?.()}
+            className="h-11 px-5 rounded-full bg-white/5 border border-white/10 text-[var(--text-color)] text-sm font-semibold hover:bg-white/10 hover:border-indigo-500/50 transition-all flex items-center gap-2"
+          >
+            <Sparkles size={16} className="text-purple-400" />
+            <span>AI Workspace</span>
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="h-11 px-6 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2 hover:translate-y-[-1px]"
+          >
+            <Plus size={18} />
+            <span>Create Task</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. STATS GRID */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatWidget 
+          label="Total Tasks" 
+          value={stats.total} 
+          icon={<CheckSquare size={20} />} 
+          colorClass="bg-blue-500" 
+          delay={0}
+        />
+        <StatWidget 
+          label="In Progress" 
+          value={stats.inProgress} 
+          icon={<Clock size={20} />} 
+          colorClass="bg-amber-500" 
+          change="Active"
+          delay={100}
+        />
+        <StatWidget 
+          label="Completed" 
+          value={stats.completed} 
+          icon={<Target size={20} />} 
+          colorClass="bg-emerald-500" 
+          change={`${completionRate}% Rate`}
+          delay={200}
+        />
+        <StatWidget 
+          label="Overdue" 
+          value={stats.overdue} 
+          icon={<AlertTriangleIcon size={20} />} 
+          colorClass="bg-rose-500" 
+          delay={300}
+        />
+      </div>
+
+      {/* 3. BENTO GRID LAYOUT */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* LEFT COLUMN (2/3 width) */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* FOCUS CARD */}
+          <div className="glass-panel rounded-3xl p-1 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            <div className="p-6 md:p-8 bg-black/20 backdrop-blur-xl rounded-[20px]">
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-500/20 rounded-xl text-indigo-400 ring-1 ring-indigo-500/20">
+                    <Target size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Current Focus</h3>
+                    <p className="text-xs text-[var(--muted-text)] uppercase tracking-widest font-semibold">Prioritize this</p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-[var(--muted-text)]">{shortcut.description}</p>
-              </button>
-            ))}
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
-                Next up
-              </p>
-              <div className="flex items-center gap-3 text-xs text-[var(--muted-text)]">
-                <span>
-                {Math.min(upcomingTasks.length, 3)} of {upcomingTasks.length}
-              </span>
-              {onNavigateTasks && upcomingTasks.length > 0 && (
-                <button
-                  type="button"
-                  onClick={onNavigateTasks}
-                  className="inline-flex items-center gap-1 font-semibold text-[#7c3aed] hover:text-[#5b2db5] transition-colors"
-                >
-                  See more
-                    <svg
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-3.5 h-3.5"
-                    >
-                      <path
-                        d="M3 8h10M9 4l4 4-4 4"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                {focusTask && (
+                  <button 
+                    onClick={() => onOpenTask?.(focusTask.id)}
+                    className="p-2 rounded-full hover:bg-white/10 text-[var(--muted-text)] hover:text-white transition-colors"
+                  >
+                    <MoreHorizontal size={20} />
                   </button>
                 )}
               </div>
-            </div>
-            {upcomingTasks.length === 0 ? (
-              <div className="text-xs text-[var(--muted-text)]">
-                No upcoming deadlines. Create a task to get started.
-              </div>
-            ) : (
-              upcomingTasks.slice(0, 3).map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => onOpenTask?.(task.id)}
-                  className="w-full rounded-2xl px-3 py-2 flex items-center justify-between text-left border transition-colors"
-                  style={{
-                    background:
-                      task.priority === 'high'
-                        ? 'var(--task-highlight-high)'
-                        : 'var(--task-highlight-default)',
-                    borderColor: task.priority === 'high' ? '#fecdd3' : 'rgba(255,255,255,0.08)',
-                  }}
-                >
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text-color)] truncate">
-                      {task.title}
-                    </p>
-                    <p
-                      className={`text-xs ${
-                        task.priority === 'high'
-                          ? 'text-[#fca5a5]'
-                          : 'text-[var(--muted-text)]'
-                      }`}
-                    >
-                      Due {formatShortDate(task.dueDate)}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-xs uppercase tracking-[0.2em] ${
-                      task.priority === 'high' ? 'text-[#f87171]' : 'text-[var(--muted-text)]'
-                    }`}
-                  >
-                    {task.priority}
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
 
-      <section className="grid gap-4 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <StatCard key={card.label} {...card} />
-        ))}
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[2fr,1fr]">
-        <div className="glass-panel rounded-3xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--text-color)]">Week timeline</h2>
-              <p className="text-sm text-[var(--muted-text)]">Upcoming deadlines for the next 7 days</p>
-            </div>
-            <span className="text-xs font-semibold text-[#7c3aed] bg-[#ede9fe] px-3 py-1 rounded-full">
-              {weekTimeline.length} tasks
-            </span>
-          </div>
-          <div className="space-y-3">
-            {weekTimeline.length === 0 ? (
-              <div className="text-sm text-[var(--muted-text)] text-center py-8">
-                No deadlines in the next week. Relax or add a new task.
-              </div>
-            ) : (
-              weekTimeline.map((task) => (
-                <button
-                  key={task.id}
-                  onClick={() => onOpenTask?.(task.id)}
-                  className="w-full flex items-center gap-4 rounded-2xl border border-white/10 px-4 py-3 text-left hover:bg-black/5 transition-colors"
-                >
-                  <div className={`text-sm font-semibold ${task.priority === 'high' ? 'text-[#dc2626]' : 'text-[#7c3aed]'} w-16`}>
-                    {formatDayLabel(task.dueDate)}
+              {focusTask ? (
+                <div>
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-2 line-clamp-2">
+                      {focusTask.title}
+                    </h2>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-[var(--text-color)]">{task.title}</p>
-                    <p className="text-xs text-[var(--muted-text)]">
-                      {task.type?.charAt(0).toUpperCase() + task.type?.slice(1)} ·{' '}
-                      {formatTimeLabel(task.dueDate) || 'All day'}
-                    </p>
-                  </div>
-                  <div className={`text-xs font-semibold uppercase tracking-[0.3em] ${task.priority === 'high' ? 'text-[#dc2626]' : 'text-[var(--muted-text)]'}`}>
-                    {task.priority}
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="glass-panel rounded-3xl p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
-                  Workload mix
-                </p>
-                <h3 className="text-lg font-semibold text-[var(--text-color)]">By task type</h3>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {typeBreakdown.map((item) => (
-                <div key={item.type}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="capitalize text-[var(--text-color)]">{item.type}s</span>
-                    <span className="text-[var(--muted-text)]">
-                      {item.count} · {item.percent}%
+                  <div className="flex items-center gap-3 mt-4 text-sm">
+                    <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 font-medium">
+                      {focusTask.type}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full border bg-opacity-5 font-medium ${
+                      focusTask.priority === 'high' ? 'border-red-500/30 bg-red-500 text-red-400' : 
+                      focusTask.priority === 'medium' ? 'border-amber-500/30 bg-amber-500 text-amber-400' : 
+                      'border-emerald-500/30 bg-emerald-500 text-emerald-400'
+                    }`}>
+                      {focusTask.priority}
+                    </span>
+                    <span className="text-[var(--muted-text)] flex items-center gap-1.5 ml-2 font-medium">
+                      <Clock size={14} /> Due {formatShortDate(focusTask.dueDate)}
                     </span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-white/10">
-                    <div
-                      className={`h-full rounded-full ${
-                        item.type === 'assignment'
-                          ? 'bg-indigo-400'
-                          : item.type === 'exam'
-                          ? 'bg-pink-400'
-                          : 'bg-purple-400'
-                      }`}
-                      style={{ width: `${item.percent}%` }}
-                    />
+                  <div className="mt-8 pt-6 border-t border-white/10 flex gap-3">
+                    <button 
+                      onClick={() => onToggleTask(focusTask.id)}
+                      className="flex-1 bg-white text-black font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-lg"
+                    >
+                      <CheckSquare size={18} /> Mark Complete
+                    </button>
+                    <button 
+                      onClick={() => onOpenTask?.(focusTask.id)}
+                      className="px-6 py-3.5 rounded-xl border border-white/10 font-semibold hover:bg-white/5 transition-colors text-[var(--text-color)]"
+                    >
+                      Details
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10 text-[var(--muted-text)]">
+                  <p>No tasks remaining. Enjoy your free time!</p>
+                  <button onClick={() => setIsModalOpen(true)} className="text-indigo-400 hover:text-indigo-300 font-semibold hover:underline mt-2">Create a task</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* AI TOOLS ROW (Updated Colors) */}
+          <div>
+            <h3 className="text-sm font-bold text-[var(--text-color)] mb-4 flex items-center gap-2 uppercase tracking-widest">
+              <Sparkles size={16} className="text-purple-400" /> 
+              AI Workspace
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <QuickAction 
+                icon={<Sparkles />} 
+                title="Generate Quiz" 
+                desc="Practice drills from notes" 
+                textColor="text-purple-400"
+                bgColor="bg-purple-500"
+                onClick={() => onNavigateAI?.('quiz')}
+              />
+              <QuickAction 
+                icon={<FileText />} 
+                title="Summarize" 
+                desc="Condense long texts" 
+                textColor="text-blue-400"
+                bgColor="bg-blue-500"
+                onClick={() => onNavigateAI?.('summarize')}
+              />
+              <QuickAction 
+                icon={<BookOpen />} 
+                title="Lesson Plan" 
+                desc="Structure your learning" 
+                textColor="text-pink-400"
+                bgColor="bg-pink-500"
+                onClick={() => onNavigateAI?.('lesson')}
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* RIGHT COLUMN (1/3 width) */}
+        <div className="space-y-6">
+          
+          {/* UPCOMING LIST */}
+          <div className="glass-panel p-5 rounded-3xl h-full flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-[var(--text-color)]">Next Up</h3>
+              <button 
+                onClick={onNavigateTasks} 
+                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 uppercase tracking-wide"
+              >
+                View all <ArrowRight size={12} />
+              </button>
+            </div>
+            
+            <div className="space-y-3 flex-1">
+              {upcomingTasks.length === 0 ? (
+                <div className="text-center py-8 text-[var(--muted-text)] text-sm">
+                  No upcoming tasks.
+                </div>
+              ) : (
+                upcomingTasks.map((task) => (
+                  <div 
+                    key={task.id}
+                    onClick={() => onOpenTask?.(task.id)}
+                    className="group p-3.5 rounded-2xl bg-black/20 hover:bg-black/40 border border-transparent hover:border-white/10 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
+                        task.priority === 'high' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 
+                        task.priority === 'medium' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[var(--text-color)] truncate group-hover:text-white transition-colors">
+                          {task.title}
+                        </p>
+                        <p className="text-xs text-[var(--muted-text)] mt-1 font-medium">
+                          {formatShortDate(task.dueDate)} • <span className="capitalize">{task.type}</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* RECENT ACTIVITY MINI */}
+          <div className="glass-panel p-5 rounded-3xl">
+            <h3 className="font-bold text-[var(--text-color)] mb-4 text-xs uppercase tracking-widest">Activity</h3>
+            <div className="space-y-4">
+              {recentActivity.map(task => (
+                <div key={task.id} className="flex gap-3 items-center group">
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[var(--muted-text)] group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
+                    {task.completed ? <CheckSquare size={14} /> : <FileText size={14} />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-[var(--text-color)] line-clamp-1 group-hover:text-indigo-200 transition-colors">{task.title}</p>
+                    <p className="text-[10px] text-[var(--muted-text)]">{formatTimeAgo(task.updatedAt || task.createdAt)}</p>
                   </div>
                 </div>
               ))}
+              {recentActivity.length === 0 && <p className="text-xs text-[var(--muted-text)]">No recent activity.</p>}
             </div>
           </div>
 
-          <div className="glass-panel rounded-3xl p-6 space-y-3">
-            <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
-              Priority load
-            </p>
-            {['high', 'medium', 'low'].map((level) => (
-              <div key={level}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="capitalize text-[var(--text-color)]">{level}</span>
-                  <span className="text-[var(--muted-text)]">
-                    {priorityBreakdown.data[level]} · {priorityBreakdown.percent[level]}%
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-white/10">
-                  <div
-                    className={`h-full rounded-full ${
-                      level === 'high'
-                        ? 'bg-rose-400'
-                        : level === 'medium'
-                        ? 'bg-amber-400'
-                        : 'bg-emerald-400'
-                    }`}
-                    style={{ width: `${priorityBreakdown.percent[level]}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[2fr,1fr]">
-        <div className="glass-panel rounded-3xl overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--text-color)]">Upcoming tasks</h2>
-              <p className="text-sm text-[var(--muted-text)]">Stay on top of what’s next</p>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="px-3 py-1.5 rounded-full border border-white/10 text-sm"
-            >
-              New task
-            </button>
-          </div>
-          {recentTasks.length === 0 ? (
-            <div className="p-6 text-center text-[var(--muted-text)] text-sm">
-              No upcoming tasks. Create one to get started.
-            </div>
-          ) : (
-            recentTasks.map((task, index) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={() => onToggleTask(task.id)}
-                onOpen={onOpenTask}
-                onFocus={onFocusChange ? () => onFocusChange(task.id) : undefined}
-                isFocused={String(task.id) === String(focusTaskId)}
-                isLast={index === recentTasks.length - 1}
-              />
-            ))
-          )}
-        </div>
-
-        <div className="glass-panel rounded-3xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/10">
-            <h2 className="text-lg font-semibold text-[var(--text-color)]">Recent activity</h2>
-            <p className="text-sm text-[var(--muted-text)]">Latest updates across your board</p>
-          </div>
-          {activityLog.length === 0 ? (
-            <div className="p-6 text-center text-[var(--muted-text)] text-sm">
-              No activity yet. Work on tasks to see updates here.
-            </div>
-          ) : (
-            activityLog.map((event, index) => (
-              <div
-                key={event.id}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-black/5 transition-colors ${
-                  index !== activityLog.length - 1 ? 'border-b border-white/10' : ''
-                }`}
-              >
-                <span className="text-base w-8 h-8 rounded-xl bg-black/5 flex items-center justify-center text-indigo-500">
-                  {event.icon}
-                </span>
-                <div className="flex-1">
-                  <div className="text-sm">{event.title}</div>
-                  <div className="text-xs text-[var(--muted-text)]">{event.description || event.time}</div>
-                </div>
-                <div className="text-[11px] uppercase tracking-[0.2em] text-[var(--muted-text)]">
-                  {event.time}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+      </div>
 
       <TaskModal
         isOpen={isModalOpen}
@@ -598,5 +390,26 @@ export default function Dashboard({
         onSubmit={handleCreateTask}
       />
     </div>
+  );
+}
+
+// Helper component for the StatWidget
+function AlertTriangleIcon({ size }) {
+  return (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width={size} 
+      height={size} 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
   );
 }

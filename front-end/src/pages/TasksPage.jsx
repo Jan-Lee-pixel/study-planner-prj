@@ -1,5 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { Plus, Filter, Search, Inbox } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  LayoutGrid, 
+  List, 
+  CheckCircle2, 
+  Circle, 
+  Clock, 
+  CalendarDays,
+  ArrowUpDown,
+  Filter
+} from 'lucide-react';
 import TaskItem from '../components/TaskItem';
 import TaskModal from '../components/TaskModal';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -17,57 +28,62 @@ export default function TasksPage({
   pendingIds = new Set(),
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [filter, setFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'board'
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'pending' | 'completed'
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('dueDate');
   const [taskToDelete, setTaskToDelete] = useState(null);
+
+  // --- LOGIC ---
 
   const scopedTasks = useMemo(() => {
     if (!typeFilter) return tasks;
     return tasks.filter((task) => task.type === typeFilter);
   }, [tasks, typeFilter]);
 
-  const filteredTasks = scopedTasks
-    .filter(task => {
-      if (filter === 'completed') return task.completed;
-      if (filter === 'pending') return !task.completed;
-      if (filter === 'overdue') {
-        const dueDate = task.dueDate || task.due_date;
-        return !task.completed && dueDate && new Date(dueDate) < new Date();
-      }
-      return true;
-    })
-    .filter(task => {
-      const haystack = `${task.title || ''} ${task.description || ''}`.toLowerCase();
-      return haystack.includes(searchTerm.toLowerCase());
-    });
+  const filteredTasks = useMemo(() => {
+    return scopedTasks
+      .filter(task => {
+        if (filterStatus === 'completed') return task.completed;
+        if (filterStatus === 'pending') return !task.completed;
+        return true;
+      })
+      .filter(task => {
+        const query = searchTerm.toLowerCase();
+        return (
+          (task.title || '').toLowerCase().includes(query) || 
+          (task.description || '').toLowerCase().includes(query)
+        );
+      })
+      .sort((a, b) => {
+        if (sortBy === 'dueDate') {
+          const dateA = a.dueDate ? new Date(a.dueDate) : new Date(8640000000000000);
+          const dateB = b.dueDate ? new Date(b.dueDate) : new Date(8640000000000000);
+          return dateA - dateB;
+        }
+        if (sortBy === 'priority') {
+          const weight = { high: 0, medium: 1, low: 2 };
+          return (weight[a.priority] ?? 3) - (weight[b.priority] ?? 3);
+        }
+        return a.title.localeCompare(b.title);
+      });
+  }, [scopedTasks, filterStatus, searchTerm, sortBy]);
 
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const dueAValue = a.dueDate || a.due_date;
-    const dueBValue = b.dueDate || b.due_date;
-    const dueA = dueAValue ? new Date(dueAValue) : new Date(8640000000000000);
-    const dueB = dueBValue ? new Date(dueBValue) : new Date(8640000000000000);
-    if (sortBy === 'dueDate') return dueA - dueB;
-    if (sortBy === 'priority') {
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-    }
-    if (sortBy === 'title') return a.title.localeCompare(b.title);
-    return 0;
-  });
+  // Grouping for Kanban Board
+  const boardGroups = useMemo(() => {
+    return {
+      high: filteredTasks.filter(t => t.priority === 'high' && !t.completed),
+      medium: filteredTasks.filter(t => t.priority === 'medium' && !t.completed),
+      low: filteredTasks.filter(t => t.priority === 'low' && !t.completed),
+      completed: filteredTasks.filter(t => t.completed)
+    };
+  }, [filteredTasks]);
 
-  const pendingTasks = sortedTasks.filter((task) => !task.completed);
-  const completedTasks = sortedTasks.filter((task) => task.completed);
+  // --- HANDLERS ---
 
   const handleCreateTask = async (taskData) => {
     const result = await onAddTask(taskData);
-    if (result?.success) {
-      setIsModalOpen(false);
-    }
-  };
-
-  const requestDeleteTask = (taskId) => {
-    setTaskToDelete(taskId);
+    if (result?.success) setIsModalOpen(false);
   };
 
   const confirmDelete = async () => {
@@ -77,131 +93,187 @@ export default function TasksPage({
     }
   };
 
-  const cancelDelete = () => setTaskToDelete(null);
+  // --- RENDER HELPERS ---
 
-  const hasScopedFilter = Boolean(typeFilter);
-
-  const isTaskPending = (taskId) => pendingIds?.has?.(String(taskId));
+  const KanbanColumn = ({ title, tasks, colorClass, icon }) => (
+    <div className="flex flex-col h-full min-w-[280px] bg-white/5 rounded-2xl p-4 border border-white/5">
+      <div className="flex items-center gap-2 mb-4 px-1">
+        <div className={`p-1.5 rounded-lg ${colorClass} bg-opacity-20 text-white`}>
+          {icon}
+        </div>
+        <span className="font-semibold text-[var(--text-color)]">{title}</span>
+        <span className="ml-auto text-xs font-medium bg-black/20 text-[var(--muted-text)] px-2 py-1 rounded-full">
+          {tasks.length}
+        </span>
+      </div>
+      <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
+        {tasks.map(task => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            onToggle={() => onToggleTask(task.id)}
+            onOpen={onOpenTask}
+            isPending={pendingIds?.has?.(String(task.id))}
+          />
+        ))}
+        {tasks.length === 0 && (
+          <div className="h-24 flex items-center justify-center text-[var(--muted-text)] text-sm border-2 border-dashed border-white/5 rounded-xl">
+            Empty
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="page-shell">
-      <div className="glass-panel p-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[var(--muted-text)]">
-            Task board
-          </p>
-          <h1 className="text-2xl font-semibold text-[var(--text-color)]">
-            {title}
-          </h1>
-          {hasScopedFilter && (
-            <span className="inline-flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-black/5 mt-2 capitalize">
-              Focused on {typeFilter}s
-            </span>
-          )}
+    <div className="page-shell h-full flex flex-col">
+      
+      {/* 1. HEADER & CONTROLS */}
+      <div className="glass-panel p-6 mb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <p className="text-xs font-bold text-indigo-400 uppercase tracking-[0.2em] mb-1">
+              Workspace
+            </p>
+            <h1 className="text-3xl font-bold text-[var(--text-color)]">{title}</h1>
+            <p className="text-[var(--muted-text)] mt-1">
+              You have {filteredTasks.length} tasks visible.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <div className="bg-black/20 p-1 rounded-full border border-white/10 flex">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2.5 rounded-full transition-all ${
+                  viewMode === 'list' 
+                    ? 'bg-white/10 text-white shadow-sm' 
+                    : 'text-[var(--muted-text)] hover:text-white'
+                }`}
+                title="List View"
+              >
+                <List size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('board')}
+                className={`p-2.5 rounded-full transition-all ${
+                  viewMode === 'board' 
+                    ? 'bg-white/10 text-white shadow-sm' 
+                    : 'text-[var(--muted-text)] hover:text-white'
+                }`}
+                title="Board View"
+              >
+                <LayoutGrid size={18} />
+              </button>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-semibold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+            >
+              <Plus size={18} />
+              <span className="hidden sm:inline">New Task</span>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm flex items-center gap-2 shadow-lg shadow-indigo-500/20"
-        >
-          <Plus size={16} />
-          New Task
-        </button>
-      </div>
 
-      <div className="glass-panel p-5 space-y-4">
-        <div className="flex flex-col md:flex-row items-stretch gap-4">
-          <div className="flex-1 relative">
-            <Search size={16} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[var(--muted-text)]" />
+        {/* Filters Bar */}
+        <div className="mt-8 flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="relative w-full lg:w-96 group">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-text)] group-focus-within:text-indigo-400 transition-colors" />
             <input
               type="text"
-              placeholder="Search tasks..."
+              placeholder="Search by keyword..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-3 py-2 rounded-2xl bg-black/5 border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full pl-12 pr-4 py-2.5 bg-black/5 border border-white/10 rounded-2xl text-sm focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
             />
           </div>
-        </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-4">
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter size={16} className="text-[var(--muted-text)]" />
-            <span className="text-sm font-medium text-[var(--text-color)]">Filter:</span>
+          <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 no-scrollbar">
             <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="px-3 py-1 rounded-full bg-black/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2.5 bg-black/5 border border-white/10 rounded-2xl text-sm font-medium focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:bg-black/10 transition-colors"
             >
-              <option value="all">All Tasks</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-              <option value="overdue">Overdue</option>
+              <option value="all">Show All</option>
+              <option value="pending">Pending Only</option>
+              <option value="completed">Completed Only</option>
             </select>
-          </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto">
-            <span className="text-sm font-medium text-[var(--text-color)]">Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-1 rounded-full bg-black/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            <button
+              onClick={() => setSortBy(sortBy === 'dueDate' ? 'priority' : 'dueDate')}
+              className="px-4 py-2.5 bg-black/5 border border-white/10 rounded-2xl text-sm font-medium hover:bg-black/10 transition-colors flex items-center gap-2 whitespace-nowrap"
             >
-              <option value="dueDate">Due Date</option>
-              <option value="priority">Priority</option>
-              <option value="title">Title</option>
-            </select>
+              <ArrowUpDown size={16} className="text-[var(--muted-text)]" />
+              Sort: {sortBy === 'dueDate' ? 'Due Date' : 'Priority'}
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="glass-panel overflow-hidden">
-        {sortedTasks.length === 0 ? (
-          <div className="p-8 text-center text-[var(--muted-text)]">
-            <Inbox className="w-10 h-10 mx-auto mb-2 opacity-60" />
-            <div className="text-lg font-medium mb-1">No tasks found</div>
-            <div className="text-sm">
-              {searchTerm
-                ? 'Try adjusting your search or filters'
-                : hasScopedFilter
-                  ? `No ${typeFilter} tasks yet. Add one to get started.`
-                  : 'Create your first task to get started'}
-            </div>
-          </div>
-        ) : (
-          <>
-            {pendingTasks.map((task, index) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={() => onToggleTask(task.id)}
-                onDelete={() => requestDeleteTask(task.id)}
-                onOpen={onOpenTask}
-                onFocus={
-                  onFocusChange ? () => onFocusChange(task.id) : undefined
-                }
-                isFocused={String(task.id) === String(focusTaskId)}
-                isPending={isTaskPending(task.id)}
-                isLast={
-                  index === pendingTasks.length - 1 && completedTasks.length === 0
-                }
-              />
-            ))}
-            {completedTasks.length > 0 && (
-              <div className="px-4 py-2 text-xs uppercase tracking-[0.3em] text-[var(--muted-text)] border-t border-white/10 bg-black/5">
-                Completed
+      {/* 2. CONTENT AREA */}
+      <div className="flex-1 min-h-0">
+        
+        {/* LIST VIEW */}
+        {viewMode === 'list' && (
+          <div className="glass-panel rounded-3xl overflow-hidden">
+            {filteredTasks.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center text-[var(--muted-text)]">
+                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                  <Search size={32} className="opacity-50" />
+                </div>
+                <h3 className="text-lg font-medium text-[var(--text-color)]">No tasks found</h3>
+                <p className="text-sm mt-1">Try adjusting your filters or create a new task.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {filteredTasks.map((task) => (
+                  <div key={task.id} className="p-2 hover:bg-black/5 transition-colors">
+                    <TaskItem
+                      task={task}
+                      onToggle={() => onToggleTask(task.id)}
+                      onDelete={() => setTaskToDelete(task.id)}
+                      onOpen={onOpenTask}
+                      onFocus={onFocusChange ? () => onFocusChange(task.id) : undefined}
+                      isFocused={String(task.id) === String(focusTaskId)}
+                      isPending={pendingIds?.has?.(String(task.id))}
+                    />
+                  </div>
+                ))}
               </div>
             )}
-            {completedTasks.map((task, index) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={() => onToggleTask(task.id)}
-                onDelete={() => requestDeleteTask(task.id)}
-                onOpen={onOpenTask}
-                isPending={isTaskPending(task.id)}
-                isLast={index === completedTasks.length - 1}
+          </div>
+        )}
+
+        {/* BOARD VIEW (KANBAN) */}
+        {viewMode === 'board' && (
+          <div className="h-full overflow-x-auto pb-4">
+            <div className="flex gap-4 h-[500px] min-w-max">
+              <KanbanColumn 
+                title="High Priority" 
+                tasks={boardGroups.high} 
+                icon={<Clock size={18} />}
+                colorClass="bg-red-500"
               />
-            ))}
-          </>
+              <KanbanColumn 
+                title="Medium Priority" 
+                tasks={boardGroups.medium} 
+                icon={<CalendarDays size={18} />}
+                colorClass="bg-amber-500"
+              />
+              <KanbanColumn 
+                title="Low Priority" 
+                tasks={boardGroups.low} 
+                icon={<Circle size={18} />}
+                colorClass="bg-emerald-500"
+              />
+              <KanbanColumn 
+                title="Completed" 
+                tasks={boardGroups.completed} 
+                icon={<CheckCircle2 size={18} />}
+                colorClass="bg-indigo-500"
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -213,11 +285,11 @@ export default function TasksPage({
       <ConfirmDialog
         isOpen={Boolean(taskToDelete)}
         title="Delete task"
-        description="Delete this task permanently? You won't be able to recover it."
+        description="Are you sure? This action cannot be undone."
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={confirmDelete}
-        onCancel={cancelDelete}
+        onCancel={() => setTaskToDelete(null)}
       />
     </div>
   );
