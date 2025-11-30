@@ -65,7 +65,7 @@ export default function FocusHero3D({ score }) {
       </div>
 
       {/* 3. RIGHT STREAK CARD (Fixed to container edge) */}
-      <div className="absolute bottom-0 right-7 z-20 flex items-center gap-4 bg-[#09090b] border border-white/10 px-5 py-3 rounded-2xl shadow-2xl transition-colors cursor-default">
+      <div className="absolute bottom-0 right-10 z-20 flex items-center gap-4 bg-[#09090b] border border-white/10 px-5 py-3 rounded-2xl shadow-2xl transition-colors cursor-default">
         <div className="p-2 bg-orange-500/20 text-orange-400 rounded-xl">
           <Flame size={24} fill="currentColor" />
         </div>
