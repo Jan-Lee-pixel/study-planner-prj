@@ -77,6 +77,13 @@ const MODE_PRIMERS = {
   For anything else, return normal text.
   `,
 
+  tip: `You are a productivity coach. 
+  Analyze the student's study stats and give ONE single, punchy, motivational tip (max 15 words).
+  - If they have overdue tasks: Be urgent but encouraging.
+  - If they are doing well: Congratulate them on the streak.
+  - If they have high focus: Tell them to keep the momentum.
+  Return JUST the text string. No quotes.`,
+
   summarize:
     "You are a precise academic summarizer. Analyze the text or file. Use bullet points.",
   lesson: "Create a lesson plan: 1. Objectives, 2. Concepts, 3. Examples.",
