@@ -12,8 +12,10 @@ import {
 } from 'lucide-react';
 import { generateAIContent } from '../services/aiService'; // Import the AI service
 
-// --- MINI COMPONENTS ---
+// 3D HERO
+import FocusHero3D from '../components/FocusHero3D';
 
+// --- MINI COMPONENTS ---
 const StatCard = ({ label, value, subtext, icon, color }) => (
   <div className="glass-panel p-5 rounded-2xl flex items-center justify-between relative overflow-hidden group">
     {/* Background Glow */}
@@ -153,24 +155,19 @@ export default function ProgressPage({ tasks }) {
       <div className="flex flex-col gap-2">
         <p className="text-xs font-bold text-indigo-400 uppercase tracking-[0.2em]">Analytics</p>
         <h1 className="text-4xl font-bold text-[var(--text-color)]">Your Growth</h1>
-        <p className="text-[var(--muted-text)]">Track your momentum and study habits.</p>
       </div>
 
-      {/* 2. KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2. NEW 3D HERO SECTION */}
+      <FocusHero3D score={stats.focusScore} />
+
+      {/* 3. KPI CARDS (Removed Focus Score from here) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
           label="Completion Rate" 
           value={`${stats.rate}%`} 
           subtext="of all tasks done"
           icon={<TrendingUp size={20} />} 
           color="bg-emerald-500" 
-        />
-        <StatCard 
-          label="Focus Score" 
-          value={stats.focusScore} 
-          subtext="High priority impact"
-          icon={<Zap size={20} />} 
-          color="bg-yellow-500" 
         />
         <StatCard 
           label="Total Completed" 
