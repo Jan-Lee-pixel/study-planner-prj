@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TaskTypeEnum = z.enum(['assignment', 'exam', 'project']);
+export const TaskTypeEnum = z.enum(['assignment', 'exam', 'project', 'study']);
 export const PriorityEnum = z.enum(['high', 'medium', 'low']);
 
 const descriptionField = z
